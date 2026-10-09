@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "workspaces":[
+  "workspaces": [
     "apps/api",
     "apps/agent",
     "apps/web",
@@ -14,6 +14,5 @@
   ],
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "description": ""
+  "license": "ISC"
 }
