@@ -69,7 +69,7 @@ authRouter.post("/login", async (req, res) => {
   const session = await createSession(user.id);
   res.status(200).json({
     data: {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
       token: session.token,
       expiresAt: session.expiresAt,
     },

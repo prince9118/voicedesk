@@ -3,9 +3,14 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../src/app.js";
 import { prisma } from "../src/db.js";
 import { encodeCursor } from "../src/tickets/ticket.cursor.js";
-import { resetDatabase, ticketListResponseSchema } from "./helpers.js";
+import { createTestUser, resetDatabase, type TestUser, ticketListResponseSchema } from "./helpers.js";
 
-beforeEach(resetDatabase);
+// An agent sees every ticket; scoped pagination for customers is covered in authorization.test.ts.
+let agent: TestUser;
+beforeEach(async () => {
+  await resetDatabase();
+  agent = await createTestUser("agent");
+});
 afterAll(() => prisma.$disconnect());
 
 // 25 tickets; the first 10 share one timestamp, which is the case that breaks naive pagination.
@@ -15,7 +20,7 @@ async function seedTickets() {
     data: Array.from({ length: 25 }, (_, i) => ({
       subject: `Seeded ticket ${i}`,
       description: "d",
-      customerEmail: "seed@example.com",
+      userId: agent.id,
       status: i % 2 === 0 ? "open" : "closed",
       createdAt: i < 10 ? tied : new Date(tied.getTime() + i * 60_000),
     })),
@@ -28,7 +33,7 @@ async function collectAllPages(query: string) {
   let pages = 0;
   do {
     const url = `/api/tickets?limit=3${query}${cursor ? `&cursor=${cursor}` : ""}`;
-    const res = await request(app).get(url);
+    const res = await request(app).get(url).set(agent.auth);
     expect(res.status).toBe(200);
     const body = ticketListResponseSchema.parse(res.body);
     ids.push(...body.data.map((t) => t.id));
@@ -47,7 +52,7 @@ describe("GET /api/tickets pagination", () => {
 
     const { ids, pages } = await collectAllPages(query);
     const single = ticketListResponseSchema.parse(
-      (await request(app).get(`/api/tickets?limit=100${query}`)).body,
+      (await request(app).get(`/api/tickets?limit=100${query}`).set(agent.auth)).body,
     );
 
     expect(new Set(ids).size).toBe(ids.length); // no duplicates
@@ -58,7 +63,7 @@ describe("GET /api/tickets pagination", () => {
 
   it("defaults to 20 per page and reports the limit", async () => {
     await seedTickets();
-    const body = ticketListResponseSchema.parse((await request(app).get("/api/tickets")).body);
+    const body = ticketListResponseSchema.parse((await request(app).get("/api/tickets").set(agent.auth)).body);
 
     expect(body.data).toHaveLength(20);
     expect(body.page.limit).toBe(20);
@@ -66,7 +71,7 @@ describe("GET /api/tickets pagination", () => {
   });
 
   it.each(["0", "101", "abc"])("rejects limit=%s", async (limit) => {
-    const res = await request(app).get(`/api/tickets?limit=${limit}`);
+    const res = await request(app).get(`/api/tickets?limit=${limit}`).set(agent.auth);
     expect(res.status).toBe(400);
     expect(res.body.error.details.fieldErrors.limit).toBeDefined();
   });
@@ -75,7 +80,7 @@ describe("GET /api/tickets pagination", () => {
     ["not base64 JSON", "bm90LWpzb24"],
     ["valid JSON, wrong shape", Buffer.from('{"createdAt":"yesterday","id":"x"}').toString("base64url")],
   ])("rejects a tampered cursor (%s)", async (_label, cursor) => {
-    const res = await request(app).get(`/api/tickets?cursor=${cursor}`);
+    const res = await request(app).get(`/api/tickets?cursor=${cursor}`).set(agent.auth);
     expect(res.status).toBe(400);
     expect(res.body.error.details.fieldErrors.cursor).toEqual(["Invalid cursor"]);
   });

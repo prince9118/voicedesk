@@ -1,6 +1,7 @@
 import { prisma } from "../db.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { encodeCursor } from "./ticket.cursor.js";
+import type { TicketScope } from "./ticket.policy.js";
 import type {
   CreateTicketInput,
   ListTicketsQuery,
@@ -9,15 +10,18 @@ import type {
 } from "./ticket.schema.js";
 
 // Return types are our own Ticket interface: if the Prisma model drifts from it, this file stops compiling.
+// Every read and write takes a TicketScope and merges it into WHERE, so ownership is enforced by
+// the database query itself. A ticket outside the caller's scope is indistinguishable from a
+// ticket that does not exist.
 
-export async function createTicket(input: CreateTicketInput): Promise<Ticket> {
-  // id, status, createdAt and updatedAt are filled in by schema defaults.
+export async function createTicket(input: CreateTicketInput, ownerId: string): Promise<Ticket> {
+  // id, status, timestamps and (when not given) priority come from schema defaults.
   return prisma.ticket.create({
     data: {
       subject: input.subject,
       description: input.description,
-      customerEmail: input.customerEmail,
       priority: input.priority,
+      userId: ownerId,
     },
   });
 }
@@ -28,11 +32,12 @@ export interface TicketPage {
 }
 
 // Keyset pagination, newest first. Returns at most `query.limit` tickets plus a cursor for the next page.
-export async function listTickets(query: ListTicketsQuery): Promise<TicketPage> {
+export async function listTickets(query: ListTicketsQuery, scope: TicketScope): Promise<TicketPage> {
   const { cursor, limit } = query;
 
   const rows = await prisma.ticket.findMany({
     where: {
+      ...scope,
       // Prisma ignores `undefined`, so a filter that was not provided matches everything.
       status: query.status,
       priority: query.priority,
@@ -60,21 +65,24 @@ export async function listTickets(query: ListTicketsQuery): Promise<TicketPage> 
   };
 }
 
-// Returns undefined rather than throwing: "not found" is an expected outcome, not an error.
-export async function getTicketById(id: string): Promise<Ticket | undefined> {
-  const ticket = await prisma.ticket.findUnique({ where: { id } });
+// Returns undefined rather than throwing: "not found" (or "not yours") is an expected outcome.
+export async function getTicketById(id: string, scope: TicketScope): Promise<Ticket | undefined> {
+  // findFirst, not findUnique: the scope adds a non-unique condition (user_id) to the lookup.
+  const ticket = await prisma.ticket.findFirst({ where: { id, ...scope } });
   return ticket ?? undefined;
 }
 
 export async function updateTicket(
   id: string,
   changes: UpdateTicketInput,
+  scope: TicketScope,
 ): Promise<Ticket | undefined> {
   try {
-    // A single UPDATE ... WHERE id = $1: no read-then-write race.
+    // A single UPDATE ... WHERE id = $1 AND user_id = $2: the ownership check and the write are
+    // one atomic statement, so there is no gap between "is it yours?" and "change it".
     // Fields left undefined are not touched; @updatedAt is set automatically.
     return await prisma.ticket.update({
-      where: { id },
+      where: { id, ...scope },
       data: {
         subject: changes.subject,
         description: changes.description,
@@ -83,7 +91,7 @@ export async function updateTicket(
       },
     });
   } catch (err) {
-    // P2025: the record to update does not exist.
+    // P2025: no row matched: it does not exist, or it is not in the caller's scope.
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
       return undefined;
     }

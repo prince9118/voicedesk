@@ -1,6 +1,8 @@
 import { Router } from "express";
+import { getAuth, requireAuth } from "../auth/require-auth.js";
 import { AppError } from "../errors.js";
 import { parseInput } from "../validation.js";
+import { assertCanWriteFields, ticketScope } from "./ticket.policy.js";
 import {
   createTicketSchema,
   listTicketsQuerySchema,
@@ -11,33 +13,44 @@ import { createTicket, getTicketById, listTickets, updateTicket } from "./ticket
 
 export const ticketRouter = Router();
 
+// Every ticket route requires a logged-in user. Applied to the whole router so a new route
+// cannot be added without it.
+ticketRouter.use(requireAuth);
+
 // The store returns undefined for a missing ticket; translating that into HTTP is the route's job.
+// Also used for tickets that exist but belong to someone else: 404, not 403, so the response
+// does not confirm that the id exists.
 function ticketNotFound() {
   return new AppError(404, "TICKET_NOT_FOUND", "Ticket not found");
 }
 
-// Handlers only describe the happy path. parseInput and ticketNotFound throw, and Express 5
-// forwards the rejected promise to errorHandler.
+// Handlers only describe the happy path. parseInput, policy checks and ticketNotFound throw,
+// and Express 5 forwards the rejected promise to errorHandler.
+// Order in each handler: validate input (400) -> check permissions (403) -> query in scope (404).
 
 // POST /api/tickets
 ticketRouter.post("/", async (req, res) => {
+  const { user } = getAuth(req);
   const input = parseInput(createTicketSchema, req.body, "body");
-  const ticket = await createTicket(input);
+  assertCanWriteFields(user, input);
+  const ticket = await createTicket(input, user.id);
   res.status(201).location(`/api/tickets/${ticket.id}`).json({ data: ticket });
 });
 
 // GET /api/tickets
 ticketRouter.get("/", async (req, res) => {
+  const { user } = getAuth(req);
   const query = parseInput(listTicketsQuerySchema, req.query, "query");
-  const { tickets, nextCursor } = await listTickets(query);
+  const { tickets, nextCursor } = await listTickets(query, ticketScope(user));
   // nextCursor is null on the last page; clients pass it back as ?cursor= to get the next one.
   res.status(200).json({ data: tickets, page: { limit: query.limit, nextCursor } });
 });
 
 // GET /api/tickets/:id
 ticketRouter.get("/:id", async (req, res) => {
+  const { user } = getAuth(req);
   const { id } = parseInput(ticketIdParamsSchema, req.params, "params");
-  const ticket = await getTicketById(id);
+  const ticket = await getTicketById(id, ticketScope(user));
   if (!ticket) {
     throw ticketNotFound();
   }
@@ -46,9 +59,11 @@ ticketRouter.get("/:id", async (req, res) => {
 
 // PATCH /api/tickets/:id
 ticketRouter.patch("/:id", async (req, res) => {
+  const { user } = getAuth(req);
   const { id } = parseInput(ticketIdParamsSchema, req.params, "params");
   const changes = parseInput(updateTicketSchema, req.body, "body");
-  const ticket = await updateTicket(id, changes);
+  assertCanWriteFields(user, changes);
+  const ticket = await updateTicket(id, changes, ticketScope(user));
   if (!ticket) {
     throw ticketNotFound();
   }

@@ -4,15 +4,20 @@ import { prisma } from "../db.js";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // What the rest of the API knows about the logged-in user. Never includes the password hash.
+export type Role = "customer" | "agent";
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  role: Role;
 }
 
 // Prisma `select` used for every user read that leaves this module, so passwordHash is
 // excluded by construction rather than by remembering to delete it.
-export const publicUserSelect = { id: true, email: true, name: true } as const;
+// role is read from the users table on every request, so promoting or demoting a user takes
+// effect immediately. A JWT would keep carrying the old role until it expired.
+export const publicUserSelect = { id: true, email: true, name: true, role: true } as const;
 
 // 32 random bytes = 256 bits: unguessable, so a fast hash (SHA-256) is enough to store it.
 // Slow hashes are only needed for low-entropy secrets like passwords.

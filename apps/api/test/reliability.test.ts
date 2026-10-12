@@ -1,8 +1,16 @@
 import request from "supertest";
-import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { app } from "../src/app.js";
 import { prisma } from "../src/db.js";
 import { Prisma } from "../src/generated/prisma/client.js";
+import { createTestUser, resetDatabase, type TestUser } from "./helpers.js";
+
+// Only ticket queries are mocked; authentication still hits the real sessions table.
+let agent: TestUser;
+beforeAll(async () => {
+  await resetDatabase();
+  agent = await createTestUser("agent");
+});
 
 afterEach(() => vi.restoreAllMocks());
 afterAll(() => prisma.$disconnect());
@@ -19,7 +27,7 @@ describe("database outage", () => {
   it("returns 503 with Retry-After instead of 500", async () => {
     vi.spyOn(prisma.ticket, "findMany").mockRejectedValueOnce(connectionRefused());
 
-    const res = await request(app).get("/api/tickets");
+    const res = await request(app).get("/api/tickets").set(agent.auth);
 
     expect(res.status).toBe(503);
     expect(res.headers["retry-after"]).toBe("5");
@@ -33,7 +41,7 @@ describe("database outage", () => {
   ])("returns 503 when the connection pool times out (%s)", async (message) => {
     vi.spyOn(prisma.ticket, "findMany").mockRejectedValueOnce(new Error(message));
 
-    const res = await request(app).get("/api/tickets");
+    const res = await request(app).get("/api/tickets").set(agent.auth);
 
     expect(res.status).toBe(503);
     expect(res.body.error.code).toBe("SERVICE_UNAVAILABLE");
@@ -42,7 +50,7 @@ describe("database outage", () => {
   it("still validates input before touching the database", async () => {
     const findMany = vi.spyOn(prisma.ticket, "findMany");
 
-    const res = await request(app).get("/api/tickets?limit=0");
+    const res = await request(app).get("/api/tickets?limit=0").set(agent.auth);
 
     expect(res.status).toBe(400);
     expect(findMany).not.toHaveBeenCalled();
@@ -64,7 +72,7 @@ describe("unexpected errors", () => {
       new Error("relation \"tickets\" does not exist at db-host-01:5432"),
     );
 
-    const res = await request(app).get("/api/tickets");
+    const res = await request(app).get("/api/tickets").set(agent.auth);
 
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: { code: "INTERNAL_ERROR", message: "Something went wrong" } });

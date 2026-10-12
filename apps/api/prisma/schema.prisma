@@ -26,21 +26,32 @@ enum TicketPriority {
   urgent
 }
 
+// customer: sees and edits only their own tickets. agent: support staff, sees and triages all.
+enum Role {
+  customer
+  agent
+}
+
 model Ticket {
-  id            String         @id @default(uuid()) @db.Uuid
-  subject       String         @db.VarChar(200)
-  description   String
-  customerEmail String         @map("customer_email") @db.VarChar(320)
-  priority      TicketPriority @default(medium)
-  status        TicketStatus   @default(open)
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id          String         @id @default(uuid()) @db.Uuid
+  subject     String         @db.VarChar(200)
+  description String
+  priority    TicketPriority @default(medium)
+  status      TicketStatus   @default(open)
+  // The owner. Restrict: a user with tickets cannot be deleted by accident and take
+  // the support history with them.
+  userId      String         @map("user_id") @db.Uuid
+  user        User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   // Keyset pagination orders by (createdAt DESC, id DESC). Postgres scans these btrees backwards,
   // so each page is an index seek + LIMIT, regardless of how deep the page is.
+  // Agents (all tickets):
   @@index([createdAt, id])
-  // Same, within one status (GET /api/tickets?status=open). Most useful when the status is rare.
   @@index([status, createdAt, id])
+  // Customers (WHERE user_id = me). Also serves as the index for the foreign key.
+  @@index([userId, createdAt, id])
   @@map("tickets")
 }
 
@@ -52,9 +63,12 @@ model User {
   name         String    @db.VarChar(100)
   // scrypt hash with its parameters (see src/auth/password.ts). Never the password itself.
   passwordHash String    @map("password_hash")
+  // Everyone registers as a customer; agents are promoted out of band (npm run user:set-role).
+  role         Role      @default(customer)
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   sessions     Session[]
+  tickets      Ticket[]
 
   @@map("users")
 }

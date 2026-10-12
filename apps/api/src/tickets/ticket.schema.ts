@@ -12,18 +12,18 @@ export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
 const subjectField = textField(3, 200);
 const descriptionField = textField(1, 5000);
 
-// What a client is allowed to send when creating a ticket.
-// strictObject rejects unknown keys, so a client cannot smuggle in `id` or `status`.
+// What a client may send when creating a ticket. strictObject rejects unknown keys, so a client
+// cannot smuggle in `id`, `status` or `userId`; the owner always comes from the session.
+// priority has no Zod default: the database defaults it to "medium", and leaving it out of the
+// parsed object lets ticket.policy.ts see whether the caller actually tried to set it.
 export const createTicketSchema = z.strictObject({
   subject: subjectField,
   description: descriptionField,
-  // 320 matches the VARCHAR(320) column (the maximum length of an email address).
-  customerEmail: z.email().max(320),
-  priority: ticketPrioritySchema.default("medium"),
+  priority: ticketPrioritySchema.optional(),
 });
 
-// PATCH: every field optional, but at least one must be present.
-// customerEmail is deliberately excluded: it identifies who owns the ticket.
+// PATCH: every field optional, but at least one must be present. Who may set which field is
+// decided in ticket.policy.ts, not here: this schema describes valid input, not permissions.
 export const updateTicketSchema = z
   .strictObject({
     subject: subjectField.optional(),
@@ -33,7 +33,7 @@ export const updateTicketSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Provide at least one field to update",
-    // Only run this rule if everything else passed, so { "customerEmail": "..." } reports
+    // Only run this rule if everything else passed, so { "userId": "..." } reports
     // just the unrecognized key instead of two errors.
     when: (payload) => payload.issues.length === 0,
   });
@@ -58,13 +58,13 @@ export type CreateTicketInput = z.infer<typeof createTicketSchema>;
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
 
-// The full ticket as the server stores it. Server-owned fields (id, status, timestamps)
+// The full ticket as the server stores it. Server-owned fields (id, owner, status, timestamps)
 // are not part of CreateTicketInput.
 export interface Ticket {
   id: string;
   subject: string;
   description: string;
-  customerEmail: string;
+  userId: string;
   priority: TicketPriority;
   status: TicketStatus;
   createdAt: Date;

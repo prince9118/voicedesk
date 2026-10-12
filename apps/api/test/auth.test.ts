@@ -13,7 +13,7 @@ const asha = { email: "asha@example.com", name: "Asha", password: "correct horse
 
 const sessionResponseSchema = z.object({
   data: z.object({
-    user: z.strictObject({ id: z.uuid(), email: z.string(), name: z.string() }),
+    user: z.strictObject({ id: z.uuid(), email: z.string(), name: z.string(), role: z.enum(["customer", "agent"]) }),
     token: z.string().length(43),
     expiresAt: z.iso.datetime(),
   }),
@@ -32,7 +32,8 @@ describe("POST /api/auth/register", () => {
     expect(res.status).toBe(201);
     // strictObject in the schema above fails if any extra field (e.g. passwordHash) is present.
     const { user } = sessionResponseSchema.parse(res.body).data;
-    expect(user).toEqual({ id: user.id, email: asha.email, name: asha.name });
+    // Everyone registers as a customer; there is no way to ask for another role.
+    expect(user).toEqual({ id: user.id, email: asha.email, name: asha.name, role: "customer" });
     expect(JSON.stringify(res.body)).not.toContain("scrypt$");
   });
 
@@ -71,6 +72,9 @@ describe("POST /api/auth/register", () => {
     ["too short", { password: "short" }],
     ["too long", { password: "x".repeat(129) }],
     ["invalid email", { email: "not-an-email" }],
+    // Regression: longer than the VARCHAR(320) column used to pass Zod and fail in Postgres as a 500.
+    ["email over 320 chars", { email: `${"a".repeat(330)}@example.com` }],
+    ["NUL in name", { name: "As\u0000ha" }],
     ["empty name", { name: "   " }],
     ["unknown field", { role: "admin" }],
   ])("rejects invalid input (%s)", async (_label, overrides) => {
