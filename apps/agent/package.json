@@ -7,12 +7,15 @@
     "dev": "tsx src/main.ts dev",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js start",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "24.13.5",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "4.1.11"
   },
   "dependencies": {
     "@livekit/agents": "1.9.0",

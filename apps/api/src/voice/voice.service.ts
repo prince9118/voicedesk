@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { AccessToken, RoomAgentDispatch, RoomConfiguration, TrackSource } from "livekit-server-sdk";
-import type { AuthUser } from "../auth/session.js";
+import { type AuthUser, publicUserSelect } from "../auth/session.js";
 import { config } from "../config.js";
+import { prisma } from "../db.js";
 
 // The token is only checked when the client connects; LiveKit Cloud refreshes it for reconnects.
 // A short lifetime means a leaked token is useless almost immediately.
 const TOKEN_TTL_SECONDS = 10 * 60;
+
+// How long the voice agent may act for the user from this room: the maximum call length.
+const AGENT_DELEGATION_TTL_MS = 60 * 60 * 1000;
 
 export interface VoiceSession {
   serverUrl: string;
@@ -44,10 +48,29 @@ export async function createVoiceSession(user: AuthUser): Promise<VoiceSession> 
     agents: [new RoomAgentDispatch({ agentName: config.LIVEKIT_AGENT_NAME })],
   });
 
+  // Record which user this room belongs to before handing out the token, so by the time the agent
+  // joins and calls the API, the binding exists.
+  await prisma.voiceSession.create({
+    data: { roomName, userId: user.id, expiresAt: new Date(Date.now() + AGENT_DELEGATION_TTL_MS) },
+  });
+
   return {
     serverUrl: config.LIVEKIT_URL,
     roomName,
     participantToken: await token.toJwt(),
     expiresAt: new Date(Date.now() + TOKEN_TTL_SECONDS * 1000),
   };
+}
+
+// The user a room was created for, if the room is known and its delegation has not expired.
+// Used to authenticate the voice agent (see auth/require-auth.ts).
+export async function findVoiceSessionUser(roomName: string): Promise<AuthUser | undefined> {
+  const session = await prisma.voiceSession.findUnique({
+    where: { roomName },
+    select: { expiresAt: true, user: { select: publicUserSelect } },
+  });
+  if (!session || session.expiresAt <= new Date()) {
+    return undefined;
+  }
+  return session.user;
 }

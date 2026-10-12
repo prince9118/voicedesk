@@ -12,6 +12,10 @@ const envSchema = z.object({
   // Recording customers' voices has consent and retention implications, so it is opt-in here.
   // Set to "true" only while debugging calls in the LiveKit Cloud dashboard.
   AGENT_RECORD_SESSIONS: z.stringbool().default(false),
+  // How the agent's tools reach the VoiceDesk API, and the shared key that lets it act for the
+  // user bound to the current room. The API, not the agent, enforces what that user may see.
+  VOICEDESK_API_URL: z.url({ protocol: /^https?$/ }),
+  AGENT_API_KEY: z.string().min(32),
 });
 
 const parsed = envSchema.safeParse(process.env);

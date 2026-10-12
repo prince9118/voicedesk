@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { type JobContext, ServerOptions, cli, defineAgent, inference, log, voice } from "@livekit/agents";
 import { config } from "./config.js";
 import { createSupportAgent } from "./support-agent.js";
+import { VoiceDeskApi } from "./voicedesk-api.js";
 
 // Models run through LiveKit Inference: billed to the LiveKit project's credits, so the agent needs
 // no separate STT/LLM/TTS provider accounts or keys. Chosen for latency and cost (see README notes
@@ -14,7 +15,7 @@ const TTS_MODEL = "deepgram/aura-2";
 // down the others. LiveKit calls it when a room created with our agent name in its token starts.
 export default defineAgent({
   entry: async (ctx: JobContext) => {
-    const logger = log().child({ room: ctx.room.name });
+    const logger = log().child({ room: ctx.job.room?.name });
 
     const session = new voice.AgentSession({
       stt: STT_MODEL,
@@ -37,7 +38,21 @@ export default defineAgent({
 
     // record defaults to true in the SDK (audio, transcript, logs, traces uploaded to LiveKit Cloud).
     // We make that an explicit, off-by-default choice: see AGENT_RECORD_SESSIONS in config.ts.
-    await session.start({ agent: createSupportAgent(), room: ctx.room, record: config.AGENT_RECORD_SESSIONS });
+    // The room name comes from LiveKit's job, never from the LLM or the caller. The API maps it to
+    // the user the room was created for; the agent cannot choose whose tickets it sees.
+    // Read from the job (known before connecting), not ctx.room, whose name is only populated after
+    // ctx.connect(). Without a room name every tool call would fail, so refuse the job outright.
+    const roomName = ctx.job.room?.name;
+    if (!roomName) {
+      throw new Error("Job has no room name; cannot act for any customer");
+    }
+    const api = new VoiceDeskApi({
+      baseUrl: config.VOICEDESK_API_URL,
+      agentKey: config.AGENT_API_KEY,
+      roomName,
+    });
+
+    await session.start({ agent: createSupportAgent(api), room: ctx.room, record: config.AGENT_RECORD_SESSIONS });
     logger.info({ recording: config.AGENT_RECORD_SESSIONS }, "Agent session started");
     await ctx.connect();
 

@@ -17,6 +17,10 @@ const envSchema = z.object({
   // Must match the agentName the voice agent registers with (apps/agent). Tokens name it so that
   // LiveKit dispatches our agent into support rooms, and only into those.
   LIVEKIT_AGENT_NAME: z.string().min(1).default("voicedesk-support"),
+  // Shared secret the voice agent presents ("Authorization: Agent <key>") to act for the user
+  // bound to its room. Long and random: generate with
+  //   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+  AGENT_API_KEY: z.string().min(32),
 });
 
 const parsed = envSchema.safeParse(process.env);

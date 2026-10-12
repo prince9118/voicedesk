@@ -72,6 +72,11 @@ export async function getTicketById(id: string, scope: TicketScope): Promise<Tic
   return ticket ?? undefined;
 }
 
+export async function getTicketByNumber(number: number, scope: TicketScope): Promise<Ticket | undefined> {
+  const ticket = await prisma.ticket.findFirst({ where: { number, ...scope } });
+  return ticket ?? undefined;
+}
+
 export async function updateTicket(
   id: string,
   changes: UpdateTicketInput,

@@ -5,7 +5,7 @@ import { AppError } from "../errors.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { emailField, parseInput, textField } from "../validation.js";
 import { getDummyHash, hashPassword, verifyPassword } from "./password.js";
-import { getAuth, requireAuth } from "./require-auth.js";
+import { getAuth, getSessionAuth, requireAuth } from "./require-auth.js";
 import { createSession, deleteSession, publicUserSelect } from "./session.js";
 
 // NIST SP 800-63B: length matters, composition rules ("1 uppercase, 1 symbol") do not.
@@ -95,7 +95,7 @@ authRouter.post("/login", async (req, res) => {
 
 // POST /api/auth/logout: revoke the current session. This is what a JWT cannot do.
 authRouter.post("/logout", requireAuth, async (req, res) => {
-  await deleteSession(getAuth(req).sessionTokenHash);
+  await deleteSession(getSessionAuth(req).sessionTokenHash);
   res.status(204).end();
 });
 

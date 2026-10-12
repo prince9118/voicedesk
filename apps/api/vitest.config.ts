@@ -15,6 +15,7 @@ export default defineConfig({
       LIVEKIT_URL: "wss://voicedesk-test.livekit.cloud",
       LIVEKIT_API_KEY: "APItestkey",
       LIVEKIT_API_SECRET: "test-secret-that-is-only-used-in-tests-0123456789",
+      AGENT_API_KEY: "test-agent-key-only-used-in-tests-0123456789abcdef",
     },
     globalSetup: ["./test/global-setup.ts"],
     // All test files share one database, so run them one after another.

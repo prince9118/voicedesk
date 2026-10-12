@@ -52,6 +52,12 @@ export const ticketIdParamsSchema = z.object({
   id: z.uuid(),
 });
 
+// Ticket numbers are Postgres INTEGER (int4). Without the upper bound, /number/99999999999 would pass
+// validation and then fail inside Prisma as a 500.
+export const ticketNumberParamsSchema = z.object({
+  number: z.coerce.number().int().min(1).max(2_147_483_647),
+});
+
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;
@@ -62,6 +68,7 @@ export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
 // are not part of CreateTicketInput.
 export interface Ticket {
   id: string;
+  number: number;
   subject: string;
   description: string;
   userId: string;
