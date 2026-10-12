@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { authRouter } from "./auth/auth.routes.js";
 import { prisma } from "./db.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { httpLogger } from "./logger.js";
@@ -35,6 +36,7 @@ app.get("/ready", async (req, res) => {
   }
 });
 
+app.use("/api/auth", authRouter);
 app.use("/api/tickets", ticketRouter);
 
 // Order matters: 404 after all routes, error handler last.

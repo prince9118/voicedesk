@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { textField } from "../validation.js";
 import { cursorSchema } from "./ticket.cursor.js";
 
 // `as const` keeps these as literal types ("open" | "in_progress" | ...) instead of string[].
@@ -8,12 +9,16 @@ export const TICKET_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 export const ticketStatusSchema = z.enum(TICKET_STATUSES);
 export const ticketPrioritySchema = z.enum(TICKET_PRIORITIES);
 
+const subjectField = textField(3, 200);
+const descriptionField = textField(1, 5000);
+
 // What a client is allowed to send when creating a ticket.
 // strictObject rejects unknown keys, so a client cannot smuggle in `id` or `status`.
 export const createTicketSchema = z.strictObject({
-  subject: z.string().trim().min(3).max(200),
-  description: z.string().trim().min(1).max(5000),
-  customerEmail: z.email(),
+  subject: subjectField,
+  description: descriptionField,
+  // 320 matches the VARCHAR(320) column (the maximum length of an email address).
+  customerEmail: z.email().max(320),
   priority: ticketPrioritySchema.default("medium"),
 });
 
@@ -21,8 +26,8 @@ export const createTicketSchema = z.strictObject({
 // customerEmail is deliberately excluded: it identifies who owns the ticket.
 export const updateTicketSchema = z
   .strictObject({
-    subject: z.string().trim().min(3).max(200).optional(),
-    description: z.string().trim().min(1).max(5000).optional(),
+    subject: subjectField.optional(),
+    description: descriptionField.optional(),
     priority: ticketPrioritySchema.optional(),
     status: ticketStatusSchema.optional(),
   })
