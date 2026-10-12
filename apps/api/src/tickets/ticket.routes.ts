@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createTicketSchema, ticketIdParamsSchema, updateTicketSchema } from "./ticket.schema.js";
+import {
+  createTicketSchema,
+  listTicketsQuerySchema,
+  ticketIdParamsSchema,
+  updateTicketSchema,
+} from "./ticket.schema.js";
 import { createTicket, getTicketById, listTickets, updateTicket } from "./ticket.store.js";
 
 export const ticketRouter = Router();
@@ -26,8 +31,20 @@ ticketRouter.post("/", async (req, res) => {
 });
 
 // GET /api/tickets
-ticketRouter.get("/", async (_req, res) => {
-  const tickets = await listTickets();
+ticketRouter.get("/", async (req, res) => {
+  const query = listTicketsQuerySchema.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Query parameters are invalid",
+        details: z.flattenError(query.error),
+      },
+    });
+    return;
+  }
+
+  const tickets = await listTickets(query.data);
   res.status(200).json({ data: tickets });
 });
 

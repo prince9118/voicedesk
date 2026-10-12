@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import type { CreateTicketInput, Ticket, UpdateTicketInput } from "./ticket.schema.js";
+import type {
+  CreateTicketInput,
+  ListTicketsFilters,
+  Ticket,
+  UpdateTicketInput,
+} from "./ticket.schema.js";
 
 // Temporary in-memory storage. Lost on every restart; replaced by PostgreSQL in Milestone 2.
 const tickets = new Map<string, Ticket>();
@@ -22,8 +27,13 @@ export async function createTicket(input: CreateTicketInput): Promise<Ticket> {
   return ticket;
 }
 
-export async function listTickets(): Promise<Ticket[]> {
-  return Array.from(tickets.values());
+// A filter that was not provided matches every ticket.
+export async function listTickets(filters: ListTicketsFilters): Promise<Ticket[]> {
+  return Array.from(tickets.values()).filter(
+    (ticket) =>
+      (filters.status === undefined || ticket.status === filters.status) &&
+      (filters.priority === undefined || ticket.priority === filters.priority),
+  );
 }
 
 // Returns undefined rather than throwing: "not found" is an expected outcome, not an error.

@@ -29,6 +29,12 @@ export const updateTicketSchema = z
     message: "Provide at least one field to update",
   });
 
+// GET list filters. Strict so a typo like ?stauts=open is a 400, not a silent "return everything".
+export const listTicketsQuerySchema = z.strictObject({
+  status: ticketStatusSchema.optional(),
+  priority: ticketPrioritySchema.optional(),
+});
+
 // Route params arrive as strings; validate the shape before touching storage.
 export const ticketIdParamsSchema = z.object({
   id: z.uuid(),
@@ -38,6 +44,7 @@ export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
+export type ListTicketsFilters = z.infer<typeof listTicketsQuerySchema>;
 
 // The full ticket as the server stores it. Server-owned fields (id, status, timestamps)
 // are not part of CreateTicketInput.
