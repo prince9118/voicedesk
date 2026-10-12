@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
+import { prisma } from "./db.js";
 import { ticketRouter } from "./tickets/ticket.routes.js";
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -41,6 +42,19 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Voice desk api running on port ${PORT}`);
 });
+
+// Graceful shutdown: stop accepting new requests, let in-flight ones finish,
+// then close the database pool so Postgres is not left with dangling connections.
+function shutdown(signal: string) {
+  console.log(`${signal} received, shutting down`);
+  server.close(async () => {
+    await prisma.$disconnect();
+    process.exit(0);
+  });
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

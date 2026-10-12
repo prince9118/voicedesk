@@ -1,4 +1,5 @@
-import { randomUUID } from "node:crypto";
+import { prisma } from "../db.js";
+import { Prisma } from "../generated/prisma/client.js";
 import type {
   CreateTicketInput,
   ListTicketsFilters,
@@ -6,59 +7,56 @@ import type {
   UpdateTicketInput,
 } from "./ticket.schema.js";
 
-// Temporary in-memory storage. Lost on every restart; replaced by PostgreSQL in Milestone 2.
-const tickets = new Map<string, Ticket>();
+// Same signatures as the in-memory version, so the routes did not change.
+// Return types are our own Ticket interface: if the Prisma model drifts from it, this file stops compiling.
 
-// These functions are async even though a Map is synchronous, so that swapping in
-// Prisma later does not change the function signatures the routes depend on.
 export async function createTicket(input: CreateTicketInput): Promise<Ticket> {
-  const now = new Date();
-  const ticket: Ticket = {
-    id: randomUUID(),
-    subject: input.subject,
-    description: input.description,
-    customerEmail: input.customerEmail,
-    priority: input.priority,
-    status: "open",
-    createdAt: now,
-    updatedAt: now,
-  };
-  tickets.set(ticket.id, ticket);
-  return ticket;
+  // id, status, createdAt and updatedAt are filled in by schema defaults.
+  return prisma.ticket.create({
+    data: {
+      subject: input.subject,
+      description: input.description,
+      customerEmail: input.customerEmail,
+      priority: input.priority,
+    },
+  });
 }
 
-// A filter that was not provided matches every ticket.
 export async function listTickets(filters: ListTicketsFilters): Promise<Ticket[]> {
-  return Array.from(tickets.values()).filter(
-    (ticket) =>
-      (filters.status === undefined || ticket.status === filters.status) &&
-      (filters.priority === undefined || ticket.priority === filters.priority),
-  );
+  // Prisma ignores `undefined` in `where`, so a filter that was not provided matches everything.
+  return prisma.ticket.findMany({
+    where: { status: filters.status, priority: filters.priority },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 // Returns undefined rather than throwing: "not found" is an expected outcome, not an error.
 export async function getTicketById(id: string): Promise<Ticket | undefined> {
-  return tickets.get(id);
+  const ticket = await prisma.ticket.findUnique({ where: { id } });
+  return ticket ?? undefined;
 }
 
 export async function updateTicket(
   id: string,
   changes: UpdateTicketInput,
 ): Promise<Ticket | undefined> {
-  const existing = tickets.get(id);
-  if (!existing) {
-    return undefined;
+  try {
+    // A single UPDATE ... WHERE id = $1: no read-then-write race.
+    // Fields left undefined are not touched; @updatedAt is set automatically.
+    return await prisma.ticket.update({
+      where: { id },
+      data: {
+        subject: changes.subject,
+        description: changes.description,
+        priority: changes.priority,
+        status: changes.status,
+      },
+    });
+  } catch (err) {
+    // P2025: the record to update does not exist.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      return undefined;
+    }
+    throw err;
   }
-
-  // Build a new object instead of mutating `existing`, and only take fields that were sent.
-  const updated: Ticket = {
-    ...existing,
-    subject: changes.subject ?? existing.subject,
-    description: changes.description ?? existing.description,
-    priority: changes.priority ?? existing.priority,
-    status: changes.status ?? existing.status,
-    updatedAt: new Date(),
-  };
-  tickets.set(id, updated);
-  return updated;
 }
