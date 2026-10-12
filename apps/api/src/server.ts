@@ -1,7 +1,8 @@
-import express, { type NextFunction, type Request, type Response } from "express";
+import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
-import { isDatabaseUnavailableError, prisma } from "./db.js";
+import { prisma } from "./db.js";
+import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { ticketRouter } from "./tickets/ticket.routes.js";
 const app = express();
 
@@ -32,37 +33,9 @@ app.get("/ready", async (_req, res) => {
 
 app.use("/api/tickets", ticketRouter);
 
-// Reached only when no route above matched.
-app.use((req, res) => {
-  res.status(404).json({
-    error: { code: "NOT_FOUND", message: `Route ${req.method} ${req.path} not found` },
-  });
-});
-
-// Express recognises error-handling middleware by its four parameters.
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  // express.json() throws a SyntaxError tagged with type "entity.parse.failed" for malformed JSON.
-  if (err instanceof SyntaxError && "type" in err && err.type === "entity.parse.failed") {
-    res.status(400).json({
-      error: { code: "INVALID_JSON", message: "Request body is not valid JSON" },
-    });
-    return;
-  }
-
-  // Infrastructure outage, not a bug: 503 + Retry-After tells clients a retry may succeed.
-  if (isDatabaseUnavailableError(err)) {
-    console.error("Database unavailable", err);
-    res.status(503).set("Retry-After", "5").json({
-      error: { code: "SERVICE_UNAVAILABLE", message: "Service temporarily unavailable, try again shortly" },
-    });
-    return;
-  }
-
-  console.error(err);
-  res.status(500).json({
-    error: { code: "INTERNAL_ERROR", message: "Something went wrong" },
-  });
-});
+// Order matters: 404 after all routes, error handler last.
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const server = app.listen(config.PORT, () => {
   console.log(`Voice desk api running on port ${config.PORT}`);

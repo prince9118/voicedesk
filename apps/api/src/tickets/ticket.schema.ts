@@ -27,6 +27,9 @@ export const updateTicketSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Provide at least one field to update",
+    // Only run this rule if everything else passed, so { "customerEmail": "..." } reports
+    // just the unrecognized key instead of two errors.
+    when: (payload) => payload.issues.length === 0,
   });
 
 // GET list filters. Strict so a typo like ?stauts=open is a 400, not a silent "return everything".

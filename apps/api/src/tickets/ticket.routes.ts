@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { z } from "zod";
+import { AppError } from "../errors.js";
+import { parseInput } from "../validation.js";
 import {
   createTicketSchema,
   listTicketsQuerySchema,
@@ -10,95 +11,45 @@ import { createTicket, getTicketById, listTickets, updateTicket } from "./ticket
 
 export const ticketRouter = Router();
 
+// The store returns undefined for a missing ticket; translating that into HTTP is the route's job.
+function ticketNotFound() {
+  return new AppError(404, "TICKET_NOT_FOUND", "Ticket not found");
+}
+
+// Handlers only describe the happy path. parseInput and ticketNotFound throw, and Express 5
+// forwards the rejected promise to errorHandler.
+
 // POST /api/tickets
 ticketRouter.post("/", async (req, res) => {
-  // safeParse never throws; it returns either { success: true, data } or { success: false, error }.
-  const result = createTicketSchema.safeParse(req.body);
-  if (!result.success) {
-    res.status(400).json({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Request body is invalid",
-        details: z.flattenError(result.error),
-      },
-    });
-    return;
-  }
-
-  // After the check above, TypeScript has narrowed result.data to CreateTicketInput.
-  const ticket = await createTicket(result.data);
+  const input = parseInput(createTicketSchema, req.body, "body");
+  const ticket = await createTicket(input);
   res.status(201).location(`/api/tickets/${ticket.id}`).json({ data: ticket });
 });
 
 // GET /api/tickets
 ticketRouter.get("/", async (req, res) => {
-  const query = listTicketsQuerySchema.safeParse(req.query);
-  if (!query.success) {
-    res.status(400).json({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Query parameters are invalid",
-        details: z.flattenError(query.error),
-      },
-    });
-    return;
-  }
-
-  const tickets = await listTickets(query.data);
+  const filters = parseInput(listTicketsQuerySchema, req.query, "query");
+  const tickets = await listTickets(filters);
   res.status(200).json({ data: tickets });
 });
 
 // GET /api/tickets/:id
 ticketRouter.get("/:id", async (req, res) => {
-  const params = ticketIdParamsSchema.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({
-      error: { code: "INVALID_TICKET_ID", message: "Ticket id must be a UUID" },
-    });
-    return;
-  }
-
-  const ticket = await getTicketById(params.data.id);
+  const { id } = parseInput(ticketIdParamsSchema, req.params, "params");
+  const ticket = await getTicketById(id);
   if (!ticket) {
-    res.status(404).json({
-      error: { code: "TICKET_NOT_FOUND", message: "Ticket not found" },
-    });
-    return;
+    throw ticketNotFound();
   }
-
-  // Narrowed from Ticket | undefined to Ticket by the check above.
   res.status(200).json({ data: ticket });
 });
 
 // PATCH /api/tickets/:id
 ticketRouter.patch("/:id", async (req, res) => {
-  const params = ticketIdParamsSchema.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({
-      error: { code: "INVALID_TICKET_ID", message: "Ticket id must be a UUID" },
-    });
-    return;
-  }
-
-  const body = updateTicketSchema.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).json({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Request body is invalid",
-        details: z.flattenError(body.error),
-      },
-    });
-    return;
-  }
-
-  const ticket = await updateTicket(params.data.id, body.data);
+  const { id } = parseInput(ticketIdParamsSchema, req.params, "params");
+  const changes = parseInput(updateTicketSchema, req.body, "body");
+  const ticket = await updateTicket(id, changes);
   if (!ticket) {
-    res.status(404).json({
-      error: { code: "TICKET_NOT_FOUND", message: "Ticket not found" },
-    });
-    return;
+    throw ticketNotFound();
   }
-
   res.status(200).json({ data: ticket });
 });
