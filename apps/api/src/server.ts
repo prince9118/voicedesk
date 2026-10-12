@@ -1,20 +1,33 @@
-import "dotenv/config";
 import express, { type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
-import { prisma } from "./db.js";
+import { config } from "./config.js";
+import { isDatabaseUnavailableError, prisma } from "./db.js";
 import { ticketRouter } from "./tickets/ticket.routes.js";
 const app = express();
-const PORT = Number(process.env.PORT) || 4000;
 
 app.use(cors());
 app.use(express.json());
 
+// Liveness: is the process up? Deliberately does not touch the database, so a DB outage
+// does not make a platform restart a perfectly healthy API process.
 app.get("/health", (req, res) => {
   res.status(200).json({
     status: "ok",
     service: "voicedesk",
     timestamp: new Date().toISOString()
   });
+});
+
+// Readiness: can this instance serve traffic right now? Used to stop routing requests
+// to it while its dependencies are down.
+app.get("/ready", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: "ready", checks: { database: "up" } });
+  } catch (err) {
+    console.error("Readiness check failed", err);
+    res.status(503).json({ status: "unavailable", checks: { database: "down" } });
+  }
 });
 
 app.use("/api/tickets", ticketRouter);
@@ -36,14 +49,23 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     return;
   }
 
+  // Infrastructure outage, not a bug: 503 + Retry-After tells clients a retry may succeed.
+  if (isDatabaseUnavailableError(err)) {
+    console.error("Database unavailable", err);
+    res.status(503).set("Retry-After", "5").json({
+      error: { code: "SERVICE_UNAVAILABLE", message: "Service temporarily unavailable, try again shortly" },
+    });
+    return;
+  }
+
   console.error(err);
   res.status(500).json({
     error: { code: "INTERNAL_ERROR", message: "Something went wrong" },
   });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Voice desk api running on port ${PORT}`);
+const server = app.listen(config.PORT, () => {
+  console.log(`Voice desk api running on port ${config.PORT}`);
 });
 
 // Graceful shutdown: stop accepting new requests, let in-flight ones finish,
