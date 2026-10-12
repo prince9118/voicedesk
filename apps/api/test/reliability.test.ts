@@ -26,6 +26,19 @@ describe("database outage", () => {
     expect(res.body.error.code).toBe("SERVICE_UNAVAILABLE");
   });
 
+  // Regression test: pg-pool's timeouts are plain Errors with no code and used to become 500s.
+  it.each([
+    "Connection terminated due to connection timeout",
+    "timeout exceeded when trying to connect",
+  ])("returns 503 when the connection pool times out (%s)", async (message) => {
+    vi.spyOn(prisma.ticket, "findMany").mockRejectedValueOnce(new Error(message));
+
+    const res = await request(app).get("/api/tickets");
+
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe("SERVICE_UNAVAILABLE");
+  });
+
   it("still validates input before touching the database", async () => {
     const findMany = vi.spyOn(prisma.ticket, "findMany");
 

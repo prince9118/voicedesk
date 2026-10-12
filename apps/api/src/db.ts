@@ -24,9 +24,17 @@ const DATABASE_UNAVAILABLE_CODES = new Set([
   "P2024", // timed out fetching a connection from the pool
 ]);
 
+// pg-pool (8.x) reports its two timeouts as plain Errors with no code, and they reach us
+// unwrapped by Prisma, so the message is the only signal. Reproduced against a non-routable host.
+// pg is pinned to an exact version so these strings cannot change under us unnoticed.
+const PG_POOL_TIMEOUT_MESSAGES = new Set([
+  "Connection terminated due to connection timeout", // opening a new connection exceeded connectionTimeoutMillis
+  "timeout exceeded when trying to connect", // waited too long for a free connection in a full pool
+]);
+
 export function isDatabaseUnavailableError(err: unknown): boolean {
-  return (
-    err instanceof Prisma.PrismaClientKnownRequestError &&
-    DATABASE_UNAVAILABLE_CODES.has(err.code)
-  );
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    return DATABASE_UNAVAILABLE_CODES.has(err.code);
+  }
+  return err instanceof Error && PG_POOL_TIMEOUT_MESSAGES.has(err.message);
 }

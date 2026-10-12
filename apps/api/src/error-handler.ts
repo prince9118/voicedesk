@@ -14,6 +14,31 @@ function attachErrorForLogging(res: Response, err: unknown) {
   res.err = err instanceof Error ? err : new Error(String(err));
 }
 
+// express.json() (body-parser) rejects bad bodies with http-errors that carry a 4xx `status`,
+// `expose: true` and a `type` such as "entity.parse.failed" or "entity.too.large".
+interface BodyParserError extends Error {
+  status: number;
+  type: string;
+}
+
+function isBodyParserClientError(err: unknown): err is BodyParserError {
+  return (
+    err instanceof Error &&
+    "type" in err && typeof err.type === "string" &&
+    "status" in err && typeof err.status === "number" &&
+    err.status >= 400 && err.status < 500 &&
+    "expose" in err && err.expose === true
+  );
+}
+
+// Stable codes and our own wording for the common cases; anything else keeps body-parser's status.
+const BODY_ERRORS: Record<string, { code: string; message: string }> = {
+  "entity.parse.failed": { code: "INVALID_JSON", message: "Request body is not valid JSON" },
+  "entity.too.large": { code: "PAYLOAD_TOO_LARGE", message: "Request body is too large" },
+  "charset.unsupported": { code: "UNSUPPORTED_MEDIA_TYPE", message: "Unsupported request charset" },
+  "encoding.unsupported": { code: "UNSUPPORTED_MEDIA_TYPE", message: "Unsupported content encoding" },
+};
+
 // Reached only when no route matched.
 export function notFoundHandler(req: Request, _res: Response, next: NextFunction) {
   next(new AppError(404, "NOT_FOUND", `Route ${req.method} ${req.path} not found`));
@@ -34,9 +59,10 @@ export function errorHandler(err: unknown, req: Request, res: Response, next: Ne
     return;
   }
 
-  // express.json() throws a SyntaxError tagged with type "entity.parse.failed" for malformed JSON.
-  if (err instanceof SyntaxError && "type" in err && err.type === "entity.parse.failed") {
-    sendError(res, 400, "INVALID_JSON", "Request body is not valid JSON");
+  // Malformed, oversized or wrongly encoded bodies are the client's mistake, never a 500.
+  if (isBodyParserClientError(err)) {
+    const known = BODY_ERRORS[err.type];
+    sendError(res, err.status, known?.code ?? "BAD_REQUEST", known?.message ?? "Request body could not be read");
     return;
   }
 

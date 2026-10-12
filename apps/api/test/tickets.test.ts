@@ -46,6 +46,42 @@ describe("POST /api/tickets", () => {
     expect(await prisma.ticket.count()).toBe(0);
   });
 
+  // Regression tests: each of these used to pass validation and then fail as a 500.
+  it("rejects an email longer than the 320-char column instead of failing in Postgres", async () => {
+    const res = await request(app)
+      .post("/api/tickets")
+      .send({ ...validTicket, customerEmail: `${"a".repeat(330)}@example.com` });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.fieldErrors.customerEmail).toBeDefined();
+  });
+
+  it("rejects NUL characters, which Postgres text columns cannot store", async () => {
+    const res = await request(app).post("/api/tickets").send({ ...validTicket, subject: "Bad\u0000byte" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.fieldErrors.subject).toEqual(["Must not contain NUL characters"]);
+  });
+
+  it("returns 413 for a body over the size limit", async () => {
+    const res = await request(app)
+      .post("/api/tickets")
+      .send({ ...validTicket, description: "x".repeat(200_000) });
+
+    expect(res.status).toBe(413);
+    expect(res.body.error.code).toBe("PAYLOAD_TOO_LARGE");
+  });
+
+  it("returns 415 for an unsupported charset", async () => {
+    const res = await request(app)
+      .post("/api/tickets")
+      .set("Content-Type", "application/json; charset=latin9")
+      .send(JSON.stringify(validTicket));
+
+    expect(res.status).toBe(415);
+    expect(res.body.error.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+  });
+
   it("returns 400 INVALID_JSON for a malformed body", async () => {
     const res = await request(app)
       .post("/api/tickets")
@@ -79,14 +115,18 @@ describe("GET /api/tickets/:id", () => {
 
 describe("PATCH /api/tickets/:id", () => {
   it("updates only the fields sent and bumps updatedAt", async () => {
-    const ticket = await createTicket();
+    // Start from an updatedAt in the past. Creating through the API and patching straight after
+    // can land in the same millisecond, which made "later than" fail at random (a flaky test).
+    const longAgo = new Date("2020-01-01T00:00:00.000Z");
+    const ticket = await prisma.ticket.create({
+      data: { ...validTicket, createdAt: longAgo, updatedAt: longAgo },
+    });
+
     const res = await request(app).patch(`/api/tickets/${ticket.id}`).send({ status: "in_progress" });
 
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ status: "in_progress", subject: validTicket.subject });
-    expect(new Date(res.body.data.updatedAt).getTime()).toBeGreaterThan(
-      new Date(ticket.updatedAt).getTime(),
-    );
+    expect(new Date(res.body.data.updatedAt).getTime()).toBeGreaterThan(longAgo.getTime());
   });
 
   it("rejects an empty body", async () => {
