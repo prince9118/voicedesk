@@ -1,0 +1,23 @@
+# Local development database only. Credentials here are not secrets; never reuse them in production.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: voicedesk-postgres
+    environment:
+      POSTGRES_USER: voicedesk
+      POSTGRES_PASSWORD: voicedesk
+      POSTGRES_DB: voicedesk
+    ports:
+      # Bind to localhost only so the database is not reachable from other machines on your network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Named volume: data survives `docker compose down` and container restarts.
+      - voicedesk-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voicedesk -d voicedesk"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  voicedesk-pgdata:

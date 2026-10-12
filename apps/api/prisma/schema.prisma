@@ -1,0 +1,42 @@
+// Prisma schema: the single source of truth for the database structure.
+// Change this file, then run `npx prisma migrate dev --name <change>` to create a migration.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Postgres enums: the database itself rejects any value outside this list.
+// Values match the Zod enums in src/tickets/ticket.schema.ts.
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+model Ticket {
+  id            String         @id @default(uuid()) @db.Uuid
+  subject       String         @db.VarChar(200)
+  description   String
+  customerEmail String         @map("customer_email") @db.VarChar(320)
+  priority      TicketPriority @default(medium)
+  status        TicketStatus   @default(open)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // Supports GET /api/tickets?status=... and newest-first ordering within a status.
+  @@index([status, createdAt])
+  @@map("tickets")
+}
