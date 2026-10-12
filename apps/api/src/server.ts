@@ -3,9 +3,12 @@ import cors from "cors";
 import { config } from "./config.js";
 import { prisma } from "./db.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
+import { httpLogger, logger } from "./logger.js";
 import { ticketRouter } from "./tickets/ticket.routes.js";
 const app = express();
 
+// First, so every request (including ones rejected by express.json) gets an id and a log line.
+app.use(httpLogger);
 app.use(cors());
 app.use(express.json());
 
@@ -21,12 +24,12 @@ app.get("/health", (req, res) => {
 
 // Readiness: can this instance serve traffic right now? Used to stop routing requests
 // to it while its dependencies are down.
-app.get("/ready", async (_req, res) => {
+app.get("/ready", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({ status: "ready", checks: { database: "up" } });
   } catch (err) {
-    console.error("Readiness check failed", err);
+    req.log.warn({ err }, "Readiness check failed");
     res.status(503).json({ status: "unavailable", checks: { database: "down" } });
   }
 });
@@ -38,13 +41,13 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 const server = app.listen(config.PORT, () => {
-  console.log(`Voice desk api running on port ${config.PORT}`);
+  logger.info({ port: config.PORT, env: config.NODE_ENV }, "VoiceDesk API listening");
 });
 
 // Graceful shutdown: stop accepting new requests, let in-flight ones finish,
 // then close the database pool so Postgres is not left with dangling connections.
 function shutdown(signal: string) {
-  console.log(`${signal} received, shutting down`);
+  logger.info({ signal }, "Shutting down");
   server.close(async () => {
     await prisma.$disconnect();
     process.exit(0);
