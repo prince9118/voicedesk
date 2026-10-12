@@ -1,0 +1,10 @@
+{
+  // Typechecks tests alongside the source. Vitest strips types without checking them,
+  // and the build tsconfig only covers src/, so without this a type error in a test goes unnoticed.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
+}
