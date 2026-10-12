@@ -16,9 +16,28 @@ export const createTicketSchema = z.strictObject({
   priority: ticketPrioritySchema.default("medium"),
 });
 
+// PATCH: every field optional, but at least one must be present.
+// customerEmail is deliberately excluded: it identifies who owns the ticket.
+export const updateTicketSchema = z
+  .strictObject({
+    subject: z.string().trim().min(3).max(200).optional(),
+    description: z.string().trim().min(1).max(5000).optional(),
+    priority: ticketPrioritySchema.optional(),
+    status: ticketStatusSchema.optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Provide at least one field to update",
+  });
+
+// Route params arrive as strings; validate the shape before touching storage.
+export const ticketIdParamsSchema = z.object({
+  id: z.uuid(),
+});
+
 export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;
+export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 
 // The full ticket as the server stores it. Server-owned fields (id, status, timestamps)
 // are not part of CreateTicketInput.

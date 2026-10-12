@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
-import { createTicketSchema } from "./ticket.schema.js";
-import { createTicket, listTickets } from "./ticket.store.js";
+import { createTicketSchema, ticketIdParamsSchema, updateTicketSchema } from "./ticket.schema.js";
+import { createTicket, getTicketById, listTickets, updateTicket } from "./ticket.store.js";
 
 export const ticketRouter = Router();
 
@@ -29,4 +29,59 @@ ticketRouter.post("/", async (req, res) => {
 ticketRouter.get("/", async (_req, res) => {
   const tickets = await listTickets();
   res.status(200).json({ data: tickets });
+});
+
+// GET /api/tickets/:id
+ticketRouter.get("/:id", async (req, res) => {
+  const params = ticketIdParamsSchema.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({
+      error: { code: "INVALID_TICKET_ID", message: "Ticket id must be a UUID" },
+    });
+    return;
+  }
+
+  const ticket = await getTicketById(params.data.id);
+  if (!ticket) {
+    res.status(404).json({
+      error: { code: "TICKET_NOT_FOUND", message: "Ticket not found" },
+    });
+    return;
+  }
+
+  // Narrowed from Ticket | undefined to Ticket by the check above.
+  res.status(200).json({ data: ticket });
+});
+
+// PATCH /api/tickets/:id
+ticketRouter.patch("/:id", async (req, res) => {
+  const params = ticketIdParamsSchema.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({
+      error: { code: "INVALID_TICKET_ID", message: "Ticket id must be a UUID" },
+    });
+    return;
+  }
+
+  const body = updateTicketSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Request body is invalid",
+        details: z.flattenError(body.error),
+      },
+    });
+    return;
+  }
+
+  const ticket = await updateTicket(params.data.id, body.data);
+  if (!ticket) {
+    res.status(404).json({
+      error: { code: "TICKET_NOT_FOUND", message: "Ticket not found" },
+    });
+    return;
+  }
+
+  res.status(200).json({ data: ticket });
 });
