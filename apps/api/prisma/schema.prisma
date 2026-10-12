@@ -36,7 +36,10 @@ model Ticket {
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  // Supports GET /api/tickets?status=... and newest-first ordering within a status.
-  @@index([status, createdAt])
+  // Keyset pagination orders by (createdAt DESC, id DESC). Postgres scans these btrees backwards,
+  // so each page is an index seek + LIMIT, regardless of how deep the page is.
+  @@index([createdAt, id])
+  // Same, within one status (GET /api/tickets?status=open). Most useful when the status is rare.
+  @@index([status, createdAt, id])
   @@map("tickets")
 }

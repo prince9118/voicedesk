@@ -28,9 +28,10 @@ ticketRouter.post("/", async (req, res) => {
 
 // GET /api/tickets
 ticketRouter.get("/", async (req, res) => {
-  const filters = parseInput(listTicketsQuerySchema, req.query, "query");
-  const tickets = await listTickets(filters);
-  res.status(200).json({ data: tickets });
+  const query = parseInput(listTicketsQuerySchema, req.query, "query");
+  const { tickets, nextCursor } = await listTickets(query);
+  // nextCursor is null on the last page; clients pass it back as ?cursor= to get the next one.
+  res.status(200).json({ data: tickets, page: { limit: query.limit, nextCursor } });
 });
 
 // GET /api/tickets/:id

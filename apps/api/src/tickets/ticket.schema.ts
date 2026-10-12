@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cursorSchema } from "./ticket.cursor.js";
 
 // `as const` keeps these as literal types ("open" | "in_progress" | ...) instead of string[].
 export const TICKET_STATUSES = ["open", "in_progress", "resolved", "closed"] as const;
@@ -32,10 +33,13 @@ export const updateTicketSchema = z
     when: (payload) => payload.issues.length === 0,
   });
 
-// GET list filters. Strict so a typo like ?stauts=open is a 400, not a silent "return everything".
+// GET list filters and pagination. Strict so a typo like ?stauts=open is a 400, not a silent "return everything".
 export const listTicketsQuerySchema = z.strictObject({
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.optional(),
+  // Query values are strings; coerce "20" to 20. The upper bound stops ?limit=1000000.
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  cursor: cursorSchema.optional(),
 });
 
 // Route params arrive as strings; validate the shape before touching storage.
@@ -47,7 +51,7 @@ export type TicketStatus = z.infer<typeof ticketStatusSchema>;
 export type TicketPriority = z.infer<typeof ticketPrioritySchema>;
 export type CreateTicketInput = z.infer<typeof createTicketSchema>;
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
-export type ListTicketsFilters = z.infer<typeof listTicketsQuerySchema>;
+export type ListTicketsQuery = z.infer<typeof listTicketsQuerySchema>;
 
 // The full ticket as the server stores it. Server-owned fields (id, status, timestamps)
 // are not part of CreateTicketInput.
