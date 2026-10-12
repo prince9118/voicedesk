@@ -5,6 +5,7 @@ import { prisma } from "./db.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { httpLogger } from "./logger.js";
 import { ticketRouter } from "./tickets/ticket.routes.js";
+import { voiceRouter } from "./voice/voice.routes.js";
 
 // Builds the Express app without listening on a port, so tests can drive it with supertest.
 export const app = express();
@@ -38,6 +39,7 @@ app.get("/ready", async (req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/tickets", ticketRouter);
+app.use("/api/voice", voiceRouter);
 
 // Order matters: 404 after all routes, error handler last.
 app.use(notFoundHandler);

@@ -9,6 +9,11 @@ const envSchema = z.object({
   // Env vars are always strings; coerce turns "4000" into 4000 before validating.
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  // LiveKit Cloud project (Settings -> API keys). The URL is given to browsers; the key and
+  // secret sign access tokens and must never leave the server.
+  LIVEKIT_URL: z.url({ protocol: /^wss?$/ }),
+  LIVEKIT_API_KEY: z.string().min(1),
+  LIVEKIT_API_SECRET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
