@@ -14,6 +14,9 @@ const envSchema = z.object({
   LIVEKIT_URL: z.url({ protocol: /^wss?$/ }),
   LIVEKIT_API_KEY: z.string().min(1),
   LIVEKIT_API_SECRET: z.string().min(1),
+  // Must match the agentName the voice agent registers with (apps/agent). Tokens name it so that
+  // LiveKit dispatches our agent into support rooms, and only into those.
+  LIVEKIT_AGENT_NAME: z.string().min(1).default("voicedesk-support"),
 });
 
 const parsed = envSchema.safeParse(process.env);

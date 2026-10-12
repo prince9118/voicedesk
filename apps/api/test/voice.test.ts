@@ -77,6 +77,13 @@ describe("POST /api/voice/sessions", () => {
     expect(video?.roomList).toBeUndefined();
   });
 
+  it("dispatches our voice agent, and only ours, into the new room", async () => {
+    const { session } = await startSession(alice);
+    const { roomConfig } = await verify(session.participantToken);
+
+    expect(roomConfig?.agents?.map((a) => a.agentName)).toEqual([config.LIVEKIT_AGENT_NAME]);
+  });
+
   it("expires after 10 minutes", async () => {
     const before = Math.floor(Date.now() / 1000);
     const { session } = await startSession(alice);

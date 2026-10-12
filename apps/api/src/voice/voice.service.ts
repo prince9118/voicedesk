@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { AccessToken, TrackSource } from "livekit-server-sdk";
+import { AccessToken, RoomAgentDispatch, RoomConfiguration, TrackSource } from "livekit-server-sdk";
 import type { AuthUser } from "../auth/session.js";
 import { config } from "../config.js";
 
@@ -36,6 +36,12 @@ export async function createVoiceSession(user: AuthUser): Promise<VoiceSession> 
     canPublishSources: [TrackSource.MICROPHONE],
     canSubscribe: true,
     canPublishData: true,
+  });
+
+  // Explicit dispatch: when this token creates the room, LiveKit sends our voice agent into it.
+  // Applied only on room creation, which is always the case here because the room name is new.
+  token.roomConfig = new RoomConfiguration({
+    agents: [new RoomAgentDispatch({ agentName: config.LIVEKIT_AGENT_NAME })],
   });
 
   return {
