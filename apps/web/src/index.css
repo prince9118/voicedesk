@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Design tokens. Used as Tailwind utilities, e.g. bg-surface, text-muted, from-accent. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-canvas: #07080d;
+  --color-surface: rgb(255 255 255 / 0.04);
+  --color-surface-strong: rgb(255 255 255 / 0.07);
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-muted: #8b90a5;
+  --color-accent: #7c6cff;
+  --color-accent-2: #22d3ee;
+  --color-danger: #fb7185;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: #e8e9f1;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Soft aurora behind everything; static, so it costs nothing per frame. */
+.aurora {
+  background:
+    radial-gradient(60rem 40rem at 10% -10%, rgb(124 108 255 / 0.18), transparent 60%),
+    radial-gradient(50rem 35rem at 110% 10%, rgb(34 211 238 / 0.12), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 120%, rgb(124 108 255 / 0.1), transparent 60%);
+}
+
+.glass {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Visible keyboard focus everywhere: motion should never come at the cost of accessibility. */
+:focus-visible {
+  outline: 2px solid var(--color-accent-2);
+  outline-offset: 2px;
+}
