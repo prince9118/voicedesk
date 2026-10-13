@@ -2,7 +2,25 @@
 
 **A voice-first AI customer-support platform.** Customers talk to an AI assistant in the browser. The assistant can look up their tickets, open new ones, and answer how-to questions from the help center, and it only ever sees the caller's own data.
 
-![VoiceDesk dashboard: the voice assistant panel with its animated orb next to the customer's ticket list](docs/images/dashboard.png)
+## Demo
+
+[![VoiceDesk landing page. Click to watch the 22-second demo video](docs/images/demo-poster.png)](docs/media/voicedesk-demo.webm)
+
+**▶ [Watch the demo video](docs/media/voicedesk-demo.webm)** (22 seconds, WebM, no sound)
+
+The video walks through the whole product, uncut:
+
+1. The landing page in dark mode, with its preview of a call.
+2. Signing up through the dialog.
+3. The dashboard, then switching to light mode.
+4. Starting a call. The real voice agent joins and greets the caller ("Hello, this is the VoiceDesk…"), and the orb follows its voice.
+5. Ending the call.
+
+It was recorded automatically with Playwright using a simulated microphone, so the assistant greets but there is no spoken conversation. The pause after the call connects is the agent starting up (about 9 seconds), which is on the [roadmap](docs/roadmap.md) to shorten.
+
+| A live call: the assistant speaking | The landing page's feature overview |
+| --- | --- |
+| ![A voice call in progress: the orb labelled "Speaking" above the assistant's greeting](docs/images/call-speaking.png) | ![Landing page feature cards: ticket status by voice, hands-free tickets, grounded answers, natural conversation](docs/images/landing-features.png) |
 
 ## What it does
 
@@ -102,9 +120,7 @@ Run the tests with `npm test` in `apps/api` (against a separate `voicedesk_test`
 | [Design decisions](docs/decisions.md) | Key trade-offs, and what would change them |
 | [Status and roadmap](docs/roadmap.md) | What is done, known issues, what is next |
 
-## Status
 
-Milestones 1 to 9 are complete: ticket API, PostgreSQL, reliability work, authentication and authorization, LiveKit integration, the voice agent, tool calling, the knowledge base, and the web app. Production hardening and deployment are next; see [docs/roadmap.md](docs/roadmap.md).
 
 ## License
 
