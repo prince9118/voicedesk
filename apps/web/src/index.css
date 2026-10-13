@@ -1,16 +1,57 @@
 @import "tailwindcss";
 
-/* Design tokens. Used as Tailwind utilities, e.g. bg-surface, text-muted, from-accent. */
+/* `dark:` utilities follow our data-theme attribute (set before paint in index.html), not the OS. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Brand colours: identical in both themes. */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --color-canvas: #07080d;
-  --color-surface: rgb(255 255 255 / 0.04);
-  --color-surface-strong: rgb(255 255 255 / 0.07);
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-muted: #8b90a5;
   --color-accent: #7c6cff;
   --color-accent-2: #22d3ee;
-  --color-danger: #fb7185;
+  --color-danger: #f43f5e;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+}
+
+/* Semantic tokens: Tailwind utilities (bg-canvas, text-fg, border-line, …) point at CSS variables,
+   so switching the theme is one attribute change and every component follows. */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-input: var(--input);
+}
+
+:root,
+[data-theme="dark"] {
+  --canvas: #07080d;
+  --surface: rgb(255 255 255 / 0.04);
+  --surface-strong: rgb(255 255 255 / 0.08);
+  --line: rgb(255 255 255 / 0.09);
+  --fg: #ececf3;
+  --muted: #8b90a5;
+  --input: rgb(0 0 0 / 0.35);
+  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 20px 40px -24px rgb(0 0 0 / 0.6);
+  --aurora-a: rgb(124 108 255 / 0.2);
+  --aurora-b: rgb(34 211 238 / 0.12);
+  --grid: rgb(255 255 255 / 0.035);
+}
+
+[data-theme="light"] {
+  --canvas: #f5f6fb;
+  --surface: rgb(255 255 255 / 0.72);
+  --surface-strong: rgb(255 255 255 / 0.96);
+  --line: rgb(15 23 42 / 0.09);
+  --fg: #0f1222;
+  --muted: #5b6178;
+  --input: #ffffff;
+  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 18px 40px -22px rgb(15 23 42 / 0.18);
+  --aurora-a: rgb(124 108 255 / 0.16);
+  --aurora-b: rgb(34 211 238 / 0.14);
+  --grid: rgb(15 23 42 / 0.04);
 }
 
 html,
@@ -21,29 +62,55 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-canvas);
-  color: #e8e9f1;
+  background: var(--canvas);
+  color: var(--fg);
   font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Soft aurora behind everything; static, so it costs nothing per frame. */
-.aurora {
-  background:
-    radial-gradient(60rem 40rem at 10% -10%, rgb(124 108 255 / 0.18), transparent 60%),
-    radial-gradient(50rem 35rem at 110% 10%, rgb(34 211 238 / 0.12), transparent 60%),
-    radial-gradient(40rem 30rem at 50% 120%, rgb(124 108 255 / 0.1), transparent 60%);
+/* Static backdrop: soft colour fields plus a faint grid. Costs nothing per frame. */
+.backdrop {
+  background-image:
+    radial-gradient(55rem 38rem at 0% -10%, var(--aurora-a), transparent 60%),
+    radial-gradient(45rem 32rem at 105% 0%, var(--aurora-b), transparent 60%),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
 }
 
 .glass {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+/* Theme switch animation: the new theme grows out of the toggle as a circle (see ui/theme.tsx).
+   Turn off the browser's default cross-fade so only our clip-path animation runs. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 /* Visible keyboard focus everywhere: motion should never come at the cost of accessibility. */
 :focus-visible {
   outline: 2px solid var(--color-accent-2);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}
+
+/* In-page links (Features, How it works…) glide instead of jumping, unless motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
