@@ -5,6 +5,7 @@ import { parseInput } from "../validation.js";
 import { assertCanWriteFields, ticketScope } from "./ticket.policy.js";
 import {
   createTicketSchema,
+  idempotencyKeySchema,
   listTicketsQuerySchema,
   ticketIdParamsSchema,
   ticketNumberParamsSchema,
@@ -30,11 +31,23 @@ function ticketNotFound() {
 // Order in each handler: validate input (400) -> check permissions (403) -> query in scope (404).
 
 // POST /api/tickets
+// Optional Idempotency-Key header: repeating a request with the same key returns the original ticket
+// (200, Idempotent-Replayed: true) instead of creating a duplicate. The voice agent always sends one.
 ticketRouter.post("/", async (req, res) => {
   const { user } = getAuth(req);
   const input = parseInput(createTicketSchema, req.body, "body");
+  const idempotencyKey = parseInput(idempotencyKeySchema, req.get("Idempotency-Key"), "headers");
   assertCanWriteFields(user, input);
-  const ticket = await createTicket(input, user.id);
+
+  const result = await createTicket(input, user.id, idempotencyKey);
+  if (result.kind === "key_reused") {
+    throw new AppError(422, "IDEMPOTENCY_KEY_REUSED", "This Idempotency-Key was already used for a different request");
+  }
+  const { ticket } = result;
+  if (result.kind === "replayed") {
+    res.set("Idempotent-Replayed", "true").status(200).json({ data: ticket });
+    return;
+  }
   res.status(201).location(`/api/tickets/${ticket.id}`).json({ data: ticket });
 });
 

@@ -16,10 +16,14 @@ What you can do:
 - List the customer's most recent tickets, with list_my_tickets, for example if they do not know the number.
 - Speech recognition can mishear numbers. Say the number back ("ticket one zero four two") before or
   while you look it up, and if a lookup finds nothing, ask the customer to repeat it.
+- Create a new support ticket with create_ticket. Before calling it, you MUST read back a short
+  subject and a one-sentence summary of the problem and get a clear "yes" from the customer.
+  If they correct anything, read it back again. Never create a ticket without that confirmation.
+  After creating it, tell them the ticket number.
 
 What you cannot do:
-- You cannot create, change or close tickets, or change anything about the account. If asked, say
-  so clearly and suggest the VoiceDesk website.
+- You cannot change, close or re-prioritise tickets, or change anything about the account. If asked,
+  say so clearly and suggest the VoiceDesk website.
 - Only use information returned by your tools. Never guess a ticket's status or invent details.
 - Never claim to have taken an action you did not take.
 
@@ -41,8 +45,12 @@ function forSpeech(ticket: TicketSummary) {
 
 const UNAVAILABLE = "The ticket system is temporarily unavailable. Apologise and suggest trying again in a few minutes.";
 
+// Guard against a runaway model loop creating tickets over and over in one call.
+const MAX_TICKETS_PER_CALL = 3;
+
 export function createSupportAgent(api: VoiceDeskApi): voice.Agent {
   const logger = log();
+  let ticketsCreatedThisCall = 0;
 
   return new voice.Agent({
     instructions: INSTRUCTIONS,
@@ -67,6 +75,47 @@ export function createSupportAgent(api: VoiceDeskApi): voice.Agent {
           }
           if (result.reason === "rejected") logger.error({ tool: "get_ticket_status" }, "API rejected the agent's request");
           throw new llm.ToolError(UNAVAILABLE);
+        },
+      }),
+
+      create_ticket: llm.tool({
+        description:
+          "Create a support ticket for the current customer. Only call this after reading the subject and " +
+          "summary back to the customer and hearing them confirm.",
+        // Bounds match the API, so a bad argument fails here with a clear message instead of a 400.
+        // No priority or status: as a customer, the agent may not set them (the API would return 403).
+        parameters: z.object({
+          subject: z.string().min(3).max(200).describe("Short title, e.g. 'Refund not received'"),
+          description: z.string().min(1).max(2000).describe("One or two sentences describing the problem, as confirmed by the customer"),
+        }),
+        execute: async ({ subject, description }, { abortSignal }) => {
+          if (ticketsCreatedThisCall >= MAX_TICKETS_PER_CALL) {
+            logger.warn({ tool: "create_ticket" }, "per-call ticket limit reached");
+            throw new llm.ToolError(
+              "This call already created the maximum number of tickets. Suggest the customer use the website for more.",
+            );
+          }
+
+          const started = Date.now();
+          const result = await api.createTicket({ subject, description }, api.idempotencyKeyFor(subject), abortSignal);
+          logger.info(
+            { tool: "create_ticket", ok: result.ok, replayed: result.ok && result.data.replayed, ms: Date.now() - started },
+            "tool call",
+          );
+
+          if (result.ok) {
+            if (result.data.replayed) {
+              // The model called the tool again for the same issue: tell it, rather than let it announce a new ticket.
+              return { created: false, alreadyCreatedEarlierInThisCall: true, ticketNumber: result.data.ticket.number };
+            }
+            ticketsCreatedThisCall++;
+            return { created: true, ticketNumber: result.data.ticket.number };
+          }
+          if (result.reason === "rejected") logger.error({ tool: "create_ticket" }, "API rejected the agent's request");
+          // Never let the model say "done" when it is not: the error tells it the ticket was NOT created.
+          throw new llm.ToolError(
+            "The ticket was NOT created because the ticket system is unavailable. Tell the customer, and suggest trying again shortly.",
+          );
         },
       }),
 

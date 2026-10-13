@@ -84,6 +84,51 @@ describe("VoiceDeskApi", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  describe("createTicket", () => {
+    const input = { subject: "Refund not received", description: "Ordered last week" };
+
+    it("retries a lost response with the SAME idempotency key, so the API can replay instead of duplicating", async () => {
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockRejectedValueOnce(new TypeError("fetch failed")) // e.g. timed out after the API committed
+        .mockResolvedValueOnce(json(200, { data: ticket }));
+      const client = clientWith(fetchMock);
+      const key = client.idempotencyKeyFor(input.subject);
+
+      const result = await client.createTicket(input, key, noAbort());
+
+      expect(result.ok).toBe(true);
+      const keys = fetchMock.mock.calls.map(([, init]) => new Headers(init?.headers).get("Idempotency-Key"));
+      expect(keys).toEqual([key, key]);
+      expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+    });
+
+    it("reports replayed when the API says it returned an existing ticket", async () => {
+      const replay = new Response(JSON.stringify({ data: ticket }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Idempotent-Replayed": "true" },
+      });
+      const result = await clientWith(vi.fn<typeof fetch>().mockResolvedValue(replay)).createTicket(input, "k", noAbort());
+      expect(result).toEqual({ ok: true, data: { ticket: expect.objectContaining({ number: 1042 }), replayed: true } });
+    });
+
+    it("does not retry a 422 (key reused for different content): that is a bug, not a blip", async () => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json(422, {}));
+      expect(await clientWith(fetchMock).createTicket(input, "k", noAbort())).toEqual({ ok: false, reason: "rejected" });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("derives one key per issue per call: same subject (any case/spacing) same key; other room or subject differs", () => {
+      const a = clientWith(vi.fn<typeof fetch>());
+      const otherRoom = new VoiceDeskApi({ baseUrl: "http://api.test", agentKey: "k".repeat(43), roomName: `${ROOM}-2` });
+
+      expect(a.idempotencyKeyFor("Refund not received")).toBe(a.idempotencyKeyFor("  refund   NOT received "));
+      expect(a.idempotencyKeyFor("Refund not received")).not.toBe(a.idempotencyKeyFor("Login broken"));
+      expect(a.idempotencyKeyFor("Refund not received")).not.toBe(otherRoom.idempotencyKeyFor("Refund not received"));
+      expect(a.idempotencyKeyFor("x")).toMatch(/^[0-9a-f]{64}$/);
+    });
+  });
+
   it("aborts a hung request after its timeout, retries once, then reports unavailable", async () => {
     // A fetch that never answers on its own: it only settles when its signal aborts.
     const fetchMock = vi.fn<typeof fetch>().mockImplementation(

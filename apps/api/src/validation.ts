@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AppError } from "./errors.js";
 
-type RequestPart = "body" | "params" | "query";
+type RequestPart = "body" | "params" | "query" | "headers";
 
 // Free text that will be stored in Postgres. Postgres text columns reject the NUL character
 // (\u0000), so without this check such input would pass validation and fail as a 500 in the database.

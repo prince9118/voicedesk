@@ -14,16 +14,46 @@ import type {
 // the database query itself. A ticket outside the caller's scope is indistinguishable from a
 // ticket that does not exist.
 
-export async function createTicket(input: CreateTicketInput, ownerId: string): Promise<Ticket> {
-  // id, status, timestamps and (when not given) priority come from schema defaults.
-  return prisma.ticket.create({
-    data: {
-      subject: input.subject,
-      description: input.description,
-      priority: input.priority,
-      userId: ownerId,
-    },
-  });
+export type CreateTicketResult =
+  | { kind: "created"; ticket: Ticket }
+  // Same key, same content: a retry or a duplicated tool call. Return the original, create nothing.
+  | { kind: "replayed"; ticket: Ticket }
+  // Same key, different content: a client bug. Silently returning the old ticket would hide it.
+  | { kind: "key_reused" };
+
+export async function createTicket(
+  input: CreateTicketInput,
+  ownerId: string,
+  idempotencyKey?: string,
+): Promise<CreateTicketResult> {
+  // id, number, status, timestamps and (when not given) priority come from schema defaults.
+  const data = {
+    subject: input.subject,
+    description: input.description,
+    priority: input.priority,
+    userId: ownerId,
+    idempotencyKey,
+  };
+  try {
+    return { kind: "created", ticket: await prisma.ticket.create({ data }) };
+  } catch (err) {
+    // Insert first and let the unique (user_id, idempotency_key) index decide, rather than
+    // SELECT-then-INSERT: two concurrent requests with one key cannot both create a ticket.
+    if (!idempotencyKey || !(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2002") {
+      throw err;
+    }
+    const existing = await prisma.ticket.findUnique({
+      where: { userId_idempotencyKey: { userId: ownerId, idempotencyKey } },
+    });
+    if (!existing) {
+      throw err; // a different unique constraint failed
+    }
+    const sameRequest =
+      existing.subject === input.subject &&
+      existing.description === input.description &&
+      existing.priority === (input.priority ?? "medium");
+    return sameRequest ? { kind: "replayed", ticket: existing } : { kind: "key_reused" };
+  }
 }
 
 export interface TicketPage {

@@ -45,9 +45,14 @@ model Ticket {
   // the support history with them.
   userId      String         @map("user_id") @db.Uuid
   user        User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // Client-supplied Idempotency-Key from the POST that created this ticket. Unique per user, so a
+  // retried or duplicated create returns the original ticket instead of making a second one.
+  idempotencyKey String?     @map("idempotency_key") @db.VarChar(64)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  // NULLs never conflict in a Postgres unique index, so tickets created without a key are unaffected.
+  @@unique([userId, idempotencyKey])
   // Keyset pagination orders by (createdAt DESC, id DESC). Postgres scans these btrees backwards,
   // so each page is an index seek + LIMIT, regardless of how deep the page is.
   // Agents (all tickets):

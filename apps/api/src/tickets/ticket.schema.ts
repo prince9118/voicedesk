@@ -52,6 +52,9 @@ export const ticketIdParamsSchema = z.object({
   id: z.uuid(),
 });
 
+// Idempotency-Key header (optional). Same character set as request ids; 64 = column size.
+export const idempotencyKeySchema = z.string().regex(/^[A-Za-z0-9._:-]{1,64}$/, "Must be 1-64 characters: letters, digits, . _ : -").optional();
+
 // Ticket numbers are Postgres INTEGER (int4). Without the upper bound, /number/99999999999 would pass
 // validation and then fail inside Prisma as a 500.
 export const ticketNumberParamsSchema = z.object({

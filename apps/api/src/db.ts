@@ -10,7 +10,9 @@ const adapter = new PrismaPg({
   // makes every request hang instead of failing.
   connectionTimeoutMillis: 5_000,
 });
-export const prisma = new PrismaClient({ adapter });
+// idempotencyKey is internal bookkeeping: hidden from every query result (and so from every API
+// response) unless a query explicitly asks for it.
+export const prisma = new PrismaClient({ adapter, omit: { ticket: { idempotencyKey: true } } });
 
 // Error codes that mean "the database is unreachable right now", so a retry may succeed.
 // ECONNREFUSED and P1017 were reproduced locally with the pg adapter; the rest are the
