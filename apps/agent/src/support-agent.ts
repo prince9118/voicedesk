@@ -21,6 +21,17 @@ What you can do:
   If they correct anything, read it back again. Never create a ticket without that confirmation.
   After creating it, tell them the ticket number.
 
+Answering how-to and policy questions (passwords, refunds, billing, invoices, account deletion, calls):
+- Always call search_help_articles first. Never answer these from your own knowledge: our policies
+  differ from other companies'.
+- Write the search query as support keywords plus synonyms, not the customer's exact words. For
+  "my money hasn't come back" search "refund not received money back"; for "I can't get in" search
+  "password reset login sign in".
+- Answer only from the returned passages, briefly, and mention which article it comes from
+  ("According to our Refunds article, ...").
+- If nothing is returned, or the passages do not actually answer the question, say you do not have
+  that information and offer to create a support ticket. Do not guess.
+
 What you cannot do:
 - You cannot change, close or re-prioritise tickets, or change anything about the account. If asked,
   say so clearly and suggest the VoiceDesk website.
@@ -116,6 +127,36 @@ export function createSupportAgent(api: VoiceDeskApi): voice.Agent {
           throw new llm.ToolError(
             "The ticket was NOT created because the ticket system is unavailable. Tell the customer, and suggest trying again shortly.",
           );
+        },
+      }),
+
+      search_help_articles: llm.tool({
+        description:
+          "Search the VoiceDesk help center. Use for any how-to or policy question. The query must be support " +
+          "keywords and synonyms (e.g. 'refund not received money back'), not the customer's literal words.",
+        parameters: z.object({
+          query: z.string().min(2).max(300).describe("Keywords and synonyms describing the topic"),
+        }),
+        execute: async ({ query }, { abortSignal }) => {
+          const started = Date.now();
+          const result = await api.searchHelpCenter(query, abortSignal);
+          logger.info(
+            { tool: "search_help_articles", ok: result.ok, passages: result.ok ? result.data.length : 0, ms: Date.now() - started },
+            "tool call",
+          );
+
+          if (result.ok) {
+            if (result.data.length === 0) {
+              return { found: false, message: "Nothing in the help center matches. Say so and offer to create a ticket." };
+            }
+            // Passages carry their source so the answer can be attributed and checked.
+            return {
+              found: true,
+              passages: result.data.map((p) => ({ article: p.source.title, section: p.heading, text: p.content })),
+            };
+          }
+          if (result.reason === "rejected") logger.error({ tool: "search_help_articles" }, "API rejected the agent's request");
+          throw new llm.ToolError("The help center is temporarily unavailable. Do not answer from memory; offer to create a ticket.");
         },
       }),
 

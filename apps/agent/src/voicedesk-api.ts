@@ -19,6 +19,13 @@ const ticketSchema = z.object({
 });
 export type TicketSummary = z.infer<typeof ticketSchema>;
 
+const passageSchema = z.object({
+  source: z.object({ slug: z.string(), title: z.string() }),
+  heading: z.string(),
+  content: z.string(),
+});
+export type HelpPassage = z.infer<typeof passageSchema>;
+
 // Outcomes a tool needs to tell apart. Failures are values, not exceptions, so each tool decides
 // what to say to the caller for each case.
 export type ApiResult<T> =
@@ -48,6 +55,11 @@ export class VoiceDeskApi {
 
   async listRecentTickets(signal: AbortSignal): Promise<ApiResult<TicketSummary[]>> {
     return this.send({ method: "GET", path: "/api/tickets?limit=5" }, z.object({ data: z.array(ticketSchema) }), signal, (body) => body.data);
+  }
+
+  async searchHelpCenter(query: string, signal: AbortSignal): Promise<ApiResult<HelpPassage[]>> {
+    const path = `/api/kb/search?${new URLSearchParams({ q: query, limit: "3" })}`;
+    return this.send({ method: "GET", path }, z.object({ data: z.array(passageSchema) }), signal, (body) => body.data);
   }
 
   // One ticket per issue per call. Derived from the room and the normalized subject, not the tool

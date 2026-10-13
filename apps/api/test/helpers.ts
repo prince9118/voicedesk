@@ -9,7 +9,7 @@ import { assertTestDatabase } from "./test-env.js";
 export async function resetDatabase(): Promise<void> {
   // Checked again here, against the URL the app actually connected with.
   assertTestDatabase(config.DATABASE_URL);
-  await prisma.$executeRaw`TRUNCATE TABLE tickets, sessions, voice_sessions, users`;
+  await prisma.$executeRaw`TRUNCATE TABLE tickets, sessions, voice_sessions, users, kb_chunks, kb_documents`;
 }
 
 export interface TestUser {

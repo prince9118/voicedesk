@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { authRouter } from "./auth/auth.routes.js";
 import { prisma } from "./db.js";
+import { kbRouter } from "./kb/kb.routes.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
 import { httpLogger } from "./logger.js";
 import { ticketRouter } from "./tickets/ticket.routes.js";
@@ -39,6 +40,7 @@ app.get("/ready", async (req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/tickets", ticketRouter);
+app.use("/api/kb", kbRouter);
 app.use("/api/voice", voiceRouter);
 
 // Order matters: 404 after all routes, error handler last.

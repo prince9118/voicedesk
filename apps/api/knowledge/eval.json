@@ -1,0 +1,20 @@
+{
+  "description": "Retrieval evaluation set. expected = slug of the document that should be the top result, or null when nothing in the knowledge base answers the question. Queries are written the way the agent's LLM is instructed to phrase searches.",
+  "cases": [
+    { "query": "reset password email not arriving spam", "expected": "password-reset" },
+    { "query": "forgot password reset link", "expected": "password-reset" },
+    { "query": "password length requirements", "expected": "password-reset" },
+    { "query": "refund not received bank statement", "expected": "refunds" },
+    { "query": "how long does a refund take", "expected": "refunds" },
+    { "query": "refund eligibility money back request", "expected": "refunds" },
+    { "query": "download invoice pdf", "expected": "billing" },
+    { "query": "change credit card payment method", "expected": "billing" },
+    { "query": "charged twice duplicate charge", "expected": "billing" },
+    { "query": "delete account remove data", "expected": "account-deletion" },
+    { "query": "assistant cannot hear me microphone", "expected": "voice-calls" },
+    { "query": "are calls recorded", "expected": "voice-calls" },
+    { "query": "office opening hours phone number", "expected": null },
+    { "query": "cancel flight booking", "expected": null },
+    { "query": "weather forecast tomorrow", "expected": null }
+  ]
+}

@@ -84,6 +84,18 @@ describe("VoiceDeskApi", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("URL-encodes help-center queries, so '&' or '?' in speech cannot add or break parameters", async () => {
+    const passage = { source: { slug: "refunds", title: "Refunds" }, heading: "H", content: "C", score: 0.8 };
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json(200, { data: [passage] }));
+
+    const result = await clientWith(fetchMock).searchHelpCenter("refund & limit=99 ?x", noAbort());
+
+    expect(result).toEqual({ ok: true, data: [{ source: passage.source, heading: "H", content: "C" }] });
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(url.searchParams.get("q")).toBe("refund & limit=99 ?x");
+    expect(url.searchParams.get("limit")).toBe("3");
+  });
+
   describe("createTicket", () => {
     const input = { subject: "Refund not received", description: "Ordered last week" };
 

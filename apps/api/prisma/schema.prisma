@@ -113,3 +113,31 @@ model Session {
   @@index([userId])
   @@map("sessions")
 }
+
+// Help-center articles, loaded from apps/api/knowledge/*.md by `npm run kb:ingest`.
+// contentHash lets ingestion skip unchanged files and detect edits; documents whose file was
+// removed are deleted, so the assistant never quotes a stale article.
+model KbDocument {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique @db.VarChar(100)
+  title       String    @db.VarChar(200)
+  contentHash String    @map("content_hash") @db.Char(64)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  chunks      KbChunk[]
+
+  @@map("kb_documents")
+}
+
+// One section of an article: the unit of retrieval. Searched with Postgres full-text search,
+// computed at query time; a GIN expression index is the next step if the corpus grows large.
+model KbChunk {
+  id         String     @id @default(uuid()) @db.Uuid
+  documentId String     @map("document_id") @db.Uuid
+  document   KbDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  heading    String     @db.VarChar(200)
+  content    String
+  position   Int
+
+  @@unique([documentId, position])
+  @@map("kb_chunks")
+}

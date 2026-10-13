@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.test.json",
     "user:set-role": "tsx src/scripts/set-role.ts",
-    "livekit:check": "tsx src/scripts/livekit-check.ts"
+    "livekit:check": "tsx src/scripts/livekit-check.ts",
+    "kb:ingest": "tsx src/scripts/kb-ingest.ts",
+    "kb:eval": "tsx src/scripts/kb-eval.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
