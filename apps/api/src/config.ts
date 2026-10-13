@@ -21,6 +21,21 @@ const envSchema = z.object({
   // bound to its room. Long and random: generate with
   //   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
   AGENT_API_KEY: z.string().min(32),
+
+  // ---- Deployment ----
+  // Set to true only when the API runs behind exactly one trusted reverse proxy (Caddy in
+  // production). Then req.ip is the visitor's address from X-Forwarded-For. Without a proxy it must
+  // stay false, or any client could fake its IP and dodge the per-IP limits below.
+  TRUST_PROXY: z.stringbool().default(false),
+  // Browser origin allowed to call the API cross-origin. Unset = no CORS headers at all, which is
+  // correct when the web app is served from the same origin (Vite proxy in dev, Caddy in prod).
+  CORS_ORIGIN: z.url().optional(),
+
+  // ---- Usage limits: protect the LiveKit credit and the login endpoints ----
+  VOICE_SESSIONS_PER_USER_PER_DAY: z.coerce.number().int().min(1).default(3),
+  VOICE_SESSIONS_PER_DAY: z.coerce.number().int().min(1).default(30),
+  REGISTRATIONS_PER_IP_PER_HOUR: z.coerce.number().int().min(1).default(5),
+  LOGIN_ATTEMPTS_PER_IP_PER_15_MIN: z.coerce.number().int().min(1).default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);

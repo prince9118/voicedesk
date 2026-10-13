@@ -16,6 +16,9 @@ const envSchema = z.object({
   // user bound to the current room. The API, not the agent, enforces what that user may see.
   VOICEDESK_API_URL: z.url({ protocol: /^https?$/ }),
   AGENT_API_KEY: z.string().min(32),
+  // Hard cap on one call's length. Every minute costs speech and model credit, so a forgotten
+  // open tab must not run for hours.
+  AGENT_MAX_CALL_MINUTES: z.coerce.number().int().min(1).max(120).default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);

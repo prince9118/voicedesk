@@ -56,6 +56,24 @@ export default defineAgent({
     logger.info({ recording: config.AGENT_RECORD_SESSIONS }, "Agent session started");
     await ctx.connect();
 
+    // Call length cap: say goodbye, let it finish playing, then delete the room, which disconnects
+    // everyone and ends the job. Cleared if the call ends on its own first.
+    const maxCallMs = config.AGENT_MAX_CALL_MINUTES * 60_000;
+    const callTimer = setTimeout(() => {
+      logger.info({ maxCallMinutes: config.AGENT_MAX_CALL_MINUTES }, "Call time limit reached");
+      void (async () => {
+        try {
+          await session
+            .say("We've reached the time limit for this call. Thanks for calling VoiceDesk. Goodbye!", { allowInterruptions: false })
+            .waitForPlayout();
+        } catch (err) {
+          logger.warn({ err }, "Could not play the goodbye message");
+        }
+        await ctx.deleteRoom().catch((err: unknown) => logger.error({ err }, "Could not end the call at the time limit"));
+      })();
+    }, maxCallMs);
+    ctx.addShutdownCallback(async () => clearTimeout(callTimer));
+
     // Speak first, so the caller knows the line is live.
     session.generateReply({
       instructions: "Greet the customer briefly, say you are the VoiceDesk assistant, and ask how you can help.",

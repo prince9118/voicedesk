@@ -7,6 +7,12 @@ import { emailField, parseInput, textField } from "../validation.js";
 import { getDummyHash, hashPassword, verifyPassword } from "./password.js";
 import { getAuth, getSessionAuth, requireAuth } from "./require-auth.js";
 import { createSession, deleteSession, publicUserSelect } from "./session.js";
+import { config } from "../config.js";
+import { rateLimit } from "../rate-limit.js";
+
+// Per-IP limits: slow down password guessing and mass sign-ups (scrypt alone only slows each guess).
+const registerLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: config.REGISTRATIONS_PER_IP_PER_HOUR });
+const loginLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: config.LOGIN_ATTEMPTS_PER_IP_PER_15_MIN });
 
 // NIST SP 800-63B: length matters, composition rules ("1 uppercase, 1 symbol") do not.
 // The upper bound keeps an attacker from making us hash megabytes.
@@ -28,7 +34,7 @@ const loginSchema = z.strictObject({
 export const authRouter = Router();
 
 // POST /api/auth/register: create an account and log it in.
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/register", registerLimit, async (req, res) => {
   const input = parseInput(registerSchema, req.body, "body");
   const passwordHash = await hashPassword(input.password);
 
@@ -61,7 +67,7 @@ authRouter.post("/register", async (req, res) => {
 });
 
 // POST /api/auth/login
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", loginLimit, async (req, res) => {
   const input = parseInput(loginSchema, req.body, "body");
   const user = await prisma.user.findUnique({
     where: { email: input.email },

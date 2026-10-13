@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { authRouter } from "./auth/auth.routes.js";
+import { config } from "./config.js";
 import { prisma } from "./db.js";
 import { kbRouter } from "./kb/kb.routes.js";
 import { errorHandler, notFoundHandler } from "./error-handler.js";
@@ -11,9 +12,13 @@ import { voiceRouter } from "./voice/voice.routes.js";
 // Builds the Express app without listening on a port, so tests can drive it with supertest.
 export const app = express();
 
+// Behind Caddy: trust exactly one proxy hop, so req.ip is the visitor (used by the per-IP limits).
+if (config.TRUST_PROXY) app.set("trust proxy", 1);
+
 // First, so every request (including ones rejected by express.json) gets an id and a log line.
 app.use(httpLogger);
-app.use(cors());
+// Same-origin in dev and prod, so CORS is off unless an origin is configured explicitly.
+if (config.CORS_ORIGIN) app.use(cors({ origin: config.CORS_ORIGIN }));
 app.use(express.json());
 
 // Liveness: is the process up? Deliberately does not touch the database, so a DB outage
