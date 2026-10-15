@@ -22,6 +22,17 @@ It was recorded automatically with Playwright using a simulated microphone, so t
 | --- | --- |
 | ![A voice call in progress: the orb labelled "Speaking" above the assistant's greeting](docs/images/call-speaking.png) | ![Landing page feature cards: ticket status by voice, hands-free tickets, grounded answers, natural conversation](docs/images/landing-features.png) |
 
+## What's new
+
+| Change | Details |
+| --- | --- |
+| **Landing page** | Visitors first see what VoiceDesk is, how to use it and its benefits, with **Sign in** and **Get started** in the header. Signing in opens as a dialog over the page. |
+| **Light and dark themes** | Follows your OS on the first visit, remembers your choice, and applies it before the page draws (no flash). Switching animates as a circle growing from the toggle. |
+| **Refreshed app UI** | Sticky top bar, greeting with live ticket stats, filter tabs, and a call panel with a live timer and a real mute button. Respects reduced-motion settings. |
+| **Usage limits** | 3 calls per user per day, 30 calls per day site-wide, 10-minute maximum call length, and per-IP limits on sign-up and login, so a public link cannot drain the LiveKit credit. |
+| **Production deployment setup** | One-command Docker stack: Caddy (automatic HTTPS, strict security headers) in front of the web app and API, PostgreSQL on a private network, and the voice agent in production mode. Tested end to end locally. |
+| **Demo video** | A recorded walkthrough of the whole product (above). |
+
 ## What it does
 
 - **Real-time voice calls** over WebRTC (LiveKit Cloud). The animated orb reacts to the actual audio level and shows whether the assistant is listening, thinking or speaking.
@@ -30,6 +41,8 @@ It was recorded automatically with Playwright using a simulated microphone, so t
 - **Help-center answers (RAG)** grounded in the knowledge base, with the source article named, and an "I don't know, shall I open a ticket?" fallback when nothing relevant is found.
 - **A ticket REST API** with validation, ownership rules, keyset pagination and idempotent creation.
 - **Accounts:** scrypt password hashing and revocable sessions, with customer and support-agent roles.
+- **Abuse and cost protection:** daily call limits per user and site-wide, a maximum call length, and rate-limited sign-up and login.
+- **A modern web app:** a landing page, light and dark themes, and an audio-reactive voice orb, with accessibility built in.
 
 ## Architecture
 
@@ -74,17 +87,20 @@ The API owns all data and every authorization decision. The agent never touches 
 | Retrieval | PostgreSQL full-text search, measured with an evaluation set |
 | Logging | pino structured JSON logs with request IDs |
 | Tests | Vitest and Supertest against a real test database |
+| Deployment | Docker Compose, Caddy 2 (automatic HTTPS), one AWS Lightsail server (planned) |
 
 ## Repository layout
 
 ```text
 voicedesk/
 ├── apps/
-│   ├── api/          Express REST API, Prisma schema & migrations, help-center articles
-│   ├── agent/        LiveKit voice agent and its tools
-│   └── web/          React frontend
+│   ├── api/          Express REST API, Prisma schema & migrations, help-center articles (+ Dockerfile)
+│   ├── agent/        LiveKit voice agent and its tools (+ Dockerfile)
+│   └── web/          React frontend (+ Dockerfile that builds it into a Caddy image)
+├── deploy/           Caddyfile and the production .env template
 ├── docs/             Project documentation (start at docs/README.md)
-├── docker-compose.yml  Local PostgreSQL
+├── docker-compose.yml       Local PostgreSQL for development
+├── docker-compose.prod.yml  Full production stack on one server
 └── package.json      npm workspaces
 ```
 
@@ -107,6 +123,26 @@ cd apps/web;   npm run dev                        # http://localhost:5173
 
 Run the tests with `npm test` in `apps/api` (against a separate `voicedesk_test` database) and in `apps/agent`.
 
+## Deployment
+
+The whole product runs on a single server with Docker:
+
+```text
+Internet ─HTTPS─▶ Caddy (automatic Let's Encrypt certificate, security headers)
+                    ├─ /        → React app (static build)
+                    └─ /api/*   → Express API ─▶ PostgreSQL (private network only)
+                  Voice agent (production mode) ─▶ LiveKit Cloud
+```
+
+```bash
+cp deploy/.env.example deploy/.env    # set DOMAIN, generated secrets, LiveKit keys
+docker compose -f docker-compose.prod.yml --env-file deploy/.env up -d --build
+```
+
+On start, the API applies database migrations and loads the help articles. Only ports 80 and 443 are exposed. The site sends a strict Content-Security-Policy (scripts only from its own origin) and allows the microphone only for itself. HTTPS is required because browsers only allow microphone access on secure pages.
+
+The stack has been tested end to end locally: HTTPS, sign-up, a live LiveKit call under the security policy with zero violations, the call limits, and IP-spoofing resistance of the rate limits. Hosting on AWS Lightsail (one 2 GB server, about $12 per month) is the next step.
+
 ## Documentation
 
 | Document | What it covers |
@@ -119,8 +155,6 @@ Run the tests with `npm test` in `apps/api` (against a separate `voicedesk_test`
 | [Knowledge base](docs/knowledge-base.md) | Ingestion, retrieval, evaluation, known limits |
 | [Design decisions](docs/decisions.md) | Key trade-offs, and what would change them |
 | [Status and roadmap](docs/roadmap.md) | What is done, known issues, what is next |
-
-
 
 ## License
 
