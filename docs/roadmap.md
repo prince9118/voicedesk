@@ -14,7 +14,9 @@
 | 8. Knowledge base | Ingestion, full-text retrieval with a measured threshold, grounded answers with sources |
 | 9. Web app | React UI with an audio-reactive voice orb, error and permission handling, reduced-motion support |
 
-Test suites: API 120 tests, agent 13 tests.
+Test suites: API 127 tests, agent 13 tests.
+
+Since then: a landing page, light and dark themes, a refreshed app UI, usage limits, and a production Docker setup (Caddy with automatic HTTPS and a strict security policy), tested end to end locally.
 
 ## Known issues
 
@@ -25,9 +27,9 @@ Test suites: API 120 tests, agent 13 tests.
 | Prisma CLI advisories (`deepmerge-ts`, `mysql2`) | Development tooling only, not in the request path | npm's suggested fix is a downgrade to Prisma 6 |
 | npm 10.8 crashes on some peer dependencies | `npm install` fails with `edgesOut` | Use npm 11 (bundled with Node 24) |
 | No frontend tests | UI regressions are caught only by hand | Planned below |
-| No rate limiting | Login guessing is slowed by scrypt but not stopped | Planned below |
+| Per-IP limits live in memory | They reset on restart and are not shared across instances | Fine for one server; move to Postgres or Redis if the API is scaled out |
 | Graceful shutdown has no time limit | One stuck request can block shutdown | Planned below |
-| CORS allows any origin | Low risk with bearer tokens | Restrict at deployment |
+| Slow first answer on a call (about 9 seconds) | Measured with the agent in dev mode, which starts a fresh process per call | Production mode keeps a warm process ready (seen in the container: ~575 MB idle); re-measure after deployment |
 | Expired sessions are not cleaned up | Tables grow slowly | Scheduled cleanup planned |
 
 ## Next
@@ -35,15 +37,13 @@ Test suites: API 120 tests, agent 13 tests.
 **Milestone 10: production readiness.**
 
 - Root-cause the test-runner crash.
-- Rate limits on login, registration and voice sessions.
 - A shutdown time limit.
 - Expired-session cleanup.
 - Frontend component tests and an end-to-end browser test.
 - Per-call usage and latency metrics for cost tracking.
 
-**Milestone 11: deployment.**
+**Milestone 11: deployment** (Docker stack done and tested locally; AWS Lightsail hosting is next).
 
-- Hosting for the API, agent, database and web app on low-cost tiers.
-- Restricted CORS and a Content-Security-Policy.
-- Production health checks.
+- Done: Dockerfiles, a production Compose stack, Caddy with automatic HTTPS, a strict Content-Security-Policy (zero violations in a browser test), CORS off (same origin), readiness health checks, and migrations on start.
+- Next: host it on one AWS Lightsail server (2 GB, about $12 per month) with your own domain, then share the live link.
 - A short case study of the project.

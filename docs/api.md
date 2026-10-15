@@ -95,5 +95,8 @@ An empty list means nothing in the help center is relevant enough (score below 0
 | 413 | `PAYLOAD_TOO_LARGE` | The body is larger than 100 kB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Unsupported charset or encoding |
 | 422 | `IDEMPOTENCY_KEY_REUSED` | The key was already used for a different request |
+| 429 | `RATE_LIMITED` | Too many sign-up or login attempts from this IP; see `Retry-After` |
+| 429 | `VOICE_LIMIT_REACHED` | You used your daily calls; see `Retry-After` |
+| 429 | `VOICE_CAPACITY_REACHED` | The site-wide daily call budget is used up |
 | 500 | `INTERNAL_ERROR` | A bug on our side; details are logged, never returned |
 | 503 | `SERVICE_UNAVAILABLE` | The database is unreachable; retry after the `Retry-After` header |

@@ -69,12 +69,23 @@ Consequences:
 ## Privacy
 
 - **Call recording is off by default.** The LiveKit Agents SDK uploads audio, transcripts, logs and traces to LiveKit Cloud unless told not to. Recording customers usually needs their consent, so it is opt-in (`AGENT_RECORD_SESSIONS=true`).
-- The web app keeps the session token in `sessionStorage`. Like `localStorage`, it is readable by any script on the page, so XSS must be prevented: React escapes output and the app renders no raw HTML. A Content-Security-Policy is planned for deployment.
+- The web app keeps the session token in `sessionStorage`. Like `localStorage`, it is readable by any script on the page, so XSS must be prevented: React escapes output, the app renders no raw HTML, and in production a strict Content-Security-Policy allows scripts from the site's own origin only (no inline scripts, no eval).
+
+## Usage limits
+
+| Limit | Default | Stored in |
+| --- | --- | --- |
+| Voice calls per user | 3 per rolling 24 hours | Postgres (survives restarts); a per-user advisory lock makes simultaneous requests count correctly |
+| Voice calls site-wide | 30 per rolling 24 hours | Postgres |
+| Call length | 10 minutes, then the agent says goodbye and ends the call | Agent |
+| Sign-ups per IP | 5 per hour | API memory |
+| Login attempts per IP | 10 per 15 minutes | API memory |
+
+Behind the production proxy the API trusts exactly one hop (`TRUST_PROXY=true`). Caddy replaces any client-supplied `X-Forwarded-For`, so faking an IP does not bypass the per-IP limits (tested). CORS is off: the web app and API share one origin.
 
 ## Known gaps
 
 These are tracked in the [roadmap](roadmap.md#known-issues):
 
-- No rate limiting yet on login, registration or voice sessions; scrypt's cost slows guessing but does not stop it.
-- CORS allows any origin. This is low risk with bearer tokens, and will be restricted at deployment.
+- Per-IP limits on sign-up and login are kept in memory: they reset when the API restarts and are not shared between several API instances.
 - Expired sessions and voice sessions are rejected but not yet cleaned up in bulk.
