@@ -29,7 +29,7 @@ It was recorded automatically with Playwright using a simulated microphone, so t
 | **Landing page** | Visitors first see what VoiceDesk is, how to use it and its benefits, with **Sign in** and **Get started** in the header. Signing in opens as a dialog over the page. |
 | **Light and dark themes** | Follows your OS on the first visit, remembers your choice, and applies it before the page draws (no flash). Switching animates as a circle growing from the toggle. |
 | **Refreshed app UI** | Sticky top bar, greeting with live ticket stats, filter tabs, and a call panel with a live timer and a real mute button. Respects reduced-motion settings. |
-| **Usage limits** | 3 calls per user per day, 30 calls per day site-wide, 10-minute maximum call length, and per-IP limits on sign-up and login, so a public link cannot drain the LiveKit credit. |
+| **Usage limits** | 3 calls per user per day, 30 calls per day site-wide, 10-minute maximum call length, and per-IP limits on sign-up and login, so a public link cannot drain the LiveKit credit. See [Usage limits](#usage-limits). |
 | **Production deployment setup** | One-command Docker stack: Caddy (automatic HTTPS, strict security headers) in front of the web app and API, PostgreSQL on a private network, and the voice agent in production mode. Tested end to end locally. |
 | **Demo video** | A recorded walkthrough of the whole product (above). |
 
@@ -43,6 +43,31 @@ It was recorded automatically with Playwright using a simulated microphone, so t
 - **Accounts:** scrypt password hashing and revocable sessions, with customer and support-agent roles.
 - **Abuse and cost protection:** daily call limits per user and site-wide, a maximum call length, and rate-limited sign-up and login.
 - **A modern web app:** a landing page, light and dark themes, and an audio-reactive voice orb, with accessibility built in.
+
+## Usage limits
+
+A shared public link means anyone can sign up and start calls, and every call spends LiveKit credit. These limits keep cost bounded and slow down abuse.
+
+| Limit | Default | What the user sees | Enforced in | Setting |
+| --- | --- | --- | --- | --- |
+| Voice calls per user | **3 per rolling 24 hours** | `429 VOICE_LIMIT_REACHED`: "You have used today's calls. You can start another in about N hour(s)." | [`voice.service.ts`](apps/api/src/voice/voice.service.ts) `startVoiceSession` | `VOICE_SESSIONS_PER_USER_PER_DAY` |
+| Voice calls, whole site | **30 per rolling 24 hours** | `429 VOICE_CAPACITY_REACHED`: "Voice calls are at capacity for today." | [`voice.service.ts`](apps/api/src/voice/voice.service.ts) `startVoiceSession` | `VOICE_SESSIONS_PER_DAY` |
+| Call length | **10 minutes** | The assistant says "We've reached the time limit for this call… Goodbye!" and ends the call | [`apps/agent/src/main.ts`](apps/agent/src/main.ts) call timer | `AGENT_MAX_CALL_MINUTES` (1 to 120) |
+| Sign-ups per IP address | **5 per hour** | `429 RATE_LIMITED`: "Too many attempts. Try again in N minute(s)." | [`rate-limit.ts`](apps/api/src/rate-limit.ts), applied in [`auth.routes.ts`](apps/api/src/auth/auth.routes.ts) | `REGISTRATIONS_PER_IP_PER_HOUR` |
+| Login attempts per IP address | **10 per 15 minutes** | `429 RATE_LIMITED`, same message | [`rate-limit.ts`](apps/api/src/rate-limit.ts), applied in [`auth.routes.ts`](apps/api/src/auth/auth.routes.ts) | `LOGIN_ATTEMPTS_PER_IP_PER_15_MIN` |
+
+Every `429` response includes a `Retry-After` header. Change a limit by setting its variable in `apps/api/.env` (local) or `deploy/.env` (production); `AGENT_MAX_CALL_MINUTES` belongs to the agent (`apps/agent/.env` locally). All settings are validated at startup.
+
+**How the limits are made reliable:**
+
+- **Call limits are counted in PostgreSQL** (the `voice_sessions` table, over the last 24 hours), so restarting the server does not reset them.
+- **Simultaneous requests cannot overshoot.** A per-user Postgres advisory lock makes "count, then start a call" atomic. A test fires 5 call requests at once and exactly 3 succeed.
+- **IP addresses cannot be faked.** In production the API trusts exactly one proxy hop (`TRUST_PROXY=true`), and Caddy replaces any `X-Forwarded-For` sent by the client. Tested: sign-ups with a different fake IP on every request were still blocked after 5.
+- **The call length cap was tested live** with a 1-minute setting: the agent ended the call on time.
+
+**Known limitation:** the sign-up and login counters live in the API's memory. They reset when the API restarts and are not shared between instances. That is fine for one server; with several API instances they should move to Postgres or Redis.
+
+Tests: [`apps/api/test/limits.test.ts`](apps/api/test/limits.test.ts).
 
 ## Architecture
 
