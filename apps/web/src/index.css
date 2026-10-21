@@ -3,55 +3,86 @@
 /* `dark:` utilities follow our data-theme attribute (set before paint in index.html), not the OS. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* Brand colours: identical in both themes. */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --color-accent: #7c6cff;
-  --color-accent-2: #22d3ee;
-  --color-danger: #f43f5e;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 /* Semantic tokens: Tailwind utilities (bg-canvas, text-fg, border-line, …) point at CSS variables,
-   so switching the theme is one attribute change and every component follows. */
+   so switching the theme is one attribute change and every component follows.
+   Values follow the Radix Colors scales: warm "sand" neutrals, one orange accent, and status hues. */
 @theme inline {
   --color-canvas: var(--canvas);
+  --color-subtle: var(--subtle);
   --color-surface: var(--surface);
-  --color-surface-strong: var(--surface-strong);
+  --color-wash: var(--wash);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
-  --color-input: var(--input);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-text: var(--success-text);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-warning-soft: var(--warning-soft);
 }
 
 :root,
-[data-theme="dark"] {
-  --canvas: #07080d;
-  --surface: rgb(255 255 255 / 0.04);
-  --surface-strong: rgb(255 255 255 / 0.08);
-  --line: rgb(255 255 255 / 0.09);
-  --fg: #ececf3;
-  --muted: #8b90a5;
-  --input: rgb(0 0 0 / 0.35);
-  --card-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 20px 40px -24px rgb(0 0 0 / 0.6);
-  --aurora-a: rgb(124 108 255 / 0.2);
-  --aurora-b: rgb(34 211 238 / 0.12);
-  --grid: rgb(255 255 255 / 0.035);
+[data-theme="light"] {
+  --canvas: #fdfdfc;
+  --subtle: #f9f9f8;
+  --surface: #ffffff;
+  --wash: #f1f0ef;
+  --line: #e2e1de;
+  --line-strong: #cfceca;
+  --fg: #21201c;
+  --muted: #63635e;
+  --faint: #8d8d86;
+  --accent: #f76b15;
+  --accent-text: #cc4e00;
+  --accent-soft: #ffefd6;
+  --danger: #e5484d;
+  --danger-text: #ce2c31;
+  --danger-soft: #feebec;
+  --success: #30a46c;
+  --success-text: #218358;
+  --info: #0090ff;
+  --warning: #ffc53d;
+  --warning-text: #ab6400;
+  --warning-soft: #fff7c2;
 }
 
-[data-theme="light"] {
-  --canvas: #f5f6fb;
-  --surface: rgb(255 255 255 / 0.72);
-  --surface-strong: rgb(255 255 255 / 0.96);
-  --line: rgb(15 23 42 / 0.09);
-  --fg: #0f1222;
-  --muted: #5b6178;
-  --input: #ffffff;
-  --card-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 18px 40px -22px rgb(15 23 42 / 0.18);
-  --aurora-a: rgb(124 108 255 / 0.16);
-  --aurora-b: rgb(34 211 238 / 0.14);
-  --grid: rgb(15 23 42 / 0.04);
+[data-theme="dark"] {
+  --canvas: #111110;
+  --subtle: #161615;
+  --surface: #191918;
+  --wash: #222221;
+  --line: #2a2a28;
+  --line-strong: #3b3a37;
+  --fg: #eeeeec;
+  --muted: #b5b3ad;
+  --faint: #7c7b74;
+  --accent: #f76b15;
+  --accent-text: #ff801f;
+  --accent-soft: #331e0b;
+  --danger: #e5484d;
+  --danger-text: #ff9592;
+  --danger-soft: #3b1219;
+  --success: #30a46c;
+  --success-text: #3dd68c;
+  --info: #3b9eff;
+  --warning: #ffc53d;
+  --warning-text: #ffca16;
+  --warning-soft: #302008;
 }
 
 html,
@@ -65,46 +96,66 @@ body {
   background: var(--canvas);
   color: var(--fg);
   font-family: var(--font-sans);
-  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  text-rendering: optimizeLegibility;
 }
 
-/* Static backdrop: soft colour fields plus a faint grid. Costs nothing per frame. */
-.backdrop {
-  background-image:
-    radial-gradient(55rem 38rem at 0% -10%, var(--aurora-a), transparent 60%),
-    radial-gradient(45rem 32rem at 105% 0%, var(--aurora-b), transparent 60%),
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: auto, auto, 44px 44px, 44px 44px;
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-.glass {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--card-shadow);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-}
-
-/* Theme switch animation: the new theme grows out of the toggle as a circle (see ui/theme.tsx).
-   Turn off the browser's default cross-fade so only our clip-path animation runs. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-/* Visible keyboard focus everywhere: motion should never come at the cost of accessibility. */
+/* Visible keyboard focus everywhere. Inputs draw their own focus ring instead. */
 :focus-visible {
-  outline: 2px solid var(--color-accent-2);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+/* Radix dialogs and tooltips: enter and exit with CSS animations keyed on data-state.
+   Radix waits for the exit animation before unmounting. Only transform/opacity, so it stays cheap. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.dialog-overlay[data-state="open"] {
+  animation: fade-in 160ms ease-out;
+}
+.dialog-overlay[data-state="closed"] {
+  animation: fade-out 120ms ease-in;
+}
+.dialog-content[data-state="open"],
+.popover-content[data-state="open"],
+.popover-content[data-state="delayed-open"] {
+  animation: pop-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dialog-content[data-state="closed"],
+.popover-content[data-state="closed"] {
+  animation: pop-out 120ms ease-in;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  body {
-    transition: none;
+  .dialog-overlay,
+  .dialog-content,
+  .popover-content {
+    animation: none !important;
   }
 }
 

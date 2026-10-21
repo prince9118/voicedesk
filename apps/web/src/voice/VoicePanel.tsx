@@ -3,18 +3,21 @@ import {
   RoomAudioRenderer,
   useConnectionState,
   useLocalParticipant,
+  useMultibandTrackVolume,
   useStartAudio,
-  useTrackVolume,
   useTranscriptions,
   useVoiceAssistant,
 } from "@livekit/components-react";
 import { ConnectionState, LocalAudioTrack, MediaDeviceFailure } from "livekit-client";
+import { Mic, MicOff, Phone, PhoneOff, RefreshCw, Volume2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type VoiceSession } from "../api/client";
-import { MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, RefreshIcon } from "../ui/icons";
-import { Button, Card, ErrorBanner } from "../ui/primitives";
-import { VoiceOrb } from "./VoiceOrb";
+import { Button, Card, ErrorBanner, Tip } from "../ui/primitives";
+import { STATE_LABEL, VoiceBars } from "./VoiceBars";
+
+const BANDS = 5;
+const SILENT = Array<number>(BANDS).fill(0);
 
 // Each failure gets a message that says what to do about it, not just that it happened.
 function describeDeviceFailure(failure: MediaDeviceFailure | undefined): string {
@@ -54,10 +57,10 @@ export function VoicePanel({ onCallActivity }: { onCallActivity: () => void }) {
   }
 
   return (
-    <Card className="relative overflow-hidden">
-      <AnimatePresence mode="wait">
+    <Card className="overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
         {phase.kind === "in-call" ? (
-          <motion.div key="call" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}>
+          <motion.div key="call" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
             <LiveKitRoom
               serverUrl={phase.session.serverUrl}
               token={phase.session.participantToken}
@@ -74,29 +77,37 @@ export function VoicePanel({ onCallActivity }: { onCallActivity: () => void }) {
             </LiveKitRoom>
           </motion.div>
         ) : (
-          <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-5 py-4 text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted">
-              <span className="size-1.5 rounded-full bg-success" />
-              Assistant available
-            </span>
-            <VoiceOrb state="idle" volume={0} />
-            <div>
-              <h2 className="text-lg font-semibold">Talk to the assistant</h2>
-              <p className="mx-auto mt-1 max-w-xs text-sm text-muted">Check a ticket, report a problem, or ask how something works.</p>
+          <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <PanelHeader>
+              <span className="flex items-center gap-2 text-[13px] text-muted">
+                <span className="size-1.5 rounded-full bg-success" />
+                Assistant available
+              </span>
+            </PanelHeader>
+            <div className="flex flex-col items-center px-6 pt-10 pb-6 text-center">
+              <VoiceBars state="idle" bands={SILENT} />
+              <h2 className="mt-8 text-lg font-semibold tracking-tight">Talk to support</h2>
+              <p className="mt-1 max-w-68 text-sm text-muted">Check on a ticket, report a problem, or ask how something works.</p>
+              <Button onClick={start} busy={phase.kind === "starting"} size="lg" className="mt-6 w-full">
+                {phase.kind !== "starting" && <Phone size={16} />}
+                {phase.kind === "starting" ? "Connecting…" : "Start a call"}
+              </Button>
+              <p className="mt-3 text-xs text-faint">Your browser will ask for microphone access.</p>
             </div>
-            <Button onClick={start} busy={phase.kind === "starting"} size="lg" className="px-7">
-              {phase.kind !== "starting" && <PhoneIcon />}
-              {phase.kind === "starting" ? "Connecting…" : "Start call"}
-            </Button>
-            <p className="text-xs text-muted">Your browser will ask for microphone access.</p>
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="mt-4">
-        <ErrorBanner message={error} />
-      </div>
+      {error && (
+        <div className="px-4 pb-4">
+          <ErrorBanner message={error} />
+        </div>
+      )}
     </Card>
   );
+}
+
+function PanelHeader({ children }: { children: React.ReactNode }) {
+  return <div className="flex h-12 items-center justify-between border-b border-line px-4">{children}</div>;
 }
 
 function formatDuration(seconds: number): string {
@@ -112,6 +123,7 @@ function InCall({ onHangUp, onActivity }: { onHangUp: () => void; onActivity: ()
   const transcripts = useTranscriptions();
   const { mergedProps: startAudioProps, canPlayAudio } = useStartAudio({ props: {} });
   const [seconds, setSeconds] = useState(0);
+  const transcriptEnd = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (connection !== ConnectionState.Connected) return;
@@ -119,112 +131,100 @@ function InCall({ onHangUp, onActivity }: { onHangUp: () => void; onActivity: ()
     return () => clearInterval(id);
   }, [connection]);
 
-  // runtime narrowing (instanceof), not a type cast: only a local audio track has a volume to show
+  // Keep the newest line in view as the conversation grows.
+  useEffect(() => {
+    transcriptEnd.current?.scrollIntoView({ block: "nearest" });
+  }, [transcripts]);
+
+  // runtime narrowing (instanceof), not a type cast: only a local audio track has levels to show
   const micTrack = microphoneTrack?.track instanceof LocalAudioTrack ? microphoneTrack.track : undefined;
-  const agentVolume = useTrackVolume(audioTrack);
-  const micVolume = useTrackVolume(micTrack);
-  const volume = state === "speaking" ? agentVolume : state === "listening" && isMicrophoneEnabled ? micVolume : 0;
+  const agentBands = useMultibandTrackVolume(audioTrack, { bands: BANDS });
+  const micBands = useMultibandTrackVolume(micTrack, { bands: BANDS });
+  const bands = state === "speaking" ? agentBands : state === "listening" && isMicrophoneEnabled ? micBands : SILENT;
 
   const reconnecting = connection === ConnectionState.Reconnecting || connection === ConnectionState.SignalReconnecting;
-  const recent = transcripts.slice(-6);
+  const shownState = connection === ConnectionState.Connecting ? "connecting" : state;
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <div className="flex w-full items-center justify-between">
-        <span className="inline-flex items-center gap-2 rounded-full border border-danger/30 bg-danger/10 px-3 py-1 text-xs font-medium text-danger dark:text-rose-300">
-          <motion.span className="size-1.5 rounded-full bg-current" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }} />
-          Live
+    <div className="flex flex-col">
+      <PanelHeader>
+        <span className="flex items-center gap-2 text-[13px] font-medium">
+          <motion.span className="size-1.5 rounded-full bg-danger" animate={{ opacity: [1, 0.25, 1] }} transition={{ duration: 1.6, repeat: Infinity }} />
+          Live call
         </span>
-        <span className="font-mono text-sm tabular-nums text-muted" aria-label="Call duration">
+        <span className="font-mono text-xs text-muted tabular-nums" aria-label="Call duration">
           {formatDuration(seconds)}
         </span>
+      </PanelHeader>
+
+      <div className="flex flex-col items-center gap-5 px-6 pt-8 pb-5">
+        <VoiceBars state={shownState} bands={bands} />
+        <p className="text-sm text-muted" aria-live="polite">
+          {reconnecting ? "Connection interrupted, reconnecting…" : (STATE_LABEL[shownState] ?? "Starting")}
+        </p>
+        {/* Browsers block audio until the user interacts; offer the tap they require. */}
+        {!canPlayAudio && (
+          <Button variant="secondary" size="sm" onClick={startAudioProps.onClick}>
+            <Volume2 size={15} />
+            Tap to enable audio
+          </Button>
+        )}
       </div>
 
-      <AnimatePresence>
-        {reconnecting && (
-          <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-full bg-warning/15 px-3 py-1 text-xs text-amber-700 dark:text-amber-300">
-            Connection interrupted, reconnecting…
-          </motion.p>
+      {/* Transcript, chat-style: your words in a bubble on the right, the assistant's as plain text. */}
+      <div className="max-h-72 min-h-24 overflow-y-auto border-t border-line bg-subtle px-4 py-4" aria-live="polite" aria-label="Conversation transcript">
+        {transcripts.length === 0 ? (
+          <p className="py-4 text-center text-xs text-faint">The conversation will appear here.</p>
+        ) : (
+          <ul className="space-y-3">
+            <AnimatePresence initial={false}>
+              {transcripts.map((t) => {
+                const mine = t.participantInfo.identity === localParticipant.identity;
+                return (
+                  <motion.li
+                    key={t.streamInfo.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={mine ? "flex justify-end" : ""}
+                  >
+                    {mine ? (
+                      <span className="max-w-[85%] rounded-2xl rounded-br-md bg-wash px-3.5 py-2 text-sm">{t.text}</span>
+                    ) : (
+                      <p className="max-w-[92%] text-sm leading-relaxed">{t.text}</p>
+                    )}
+                  </motion.li>
+                );
+              })}
+            </AnimatePresence>
+          </ul>
         )}
-      </AnimatePresence>
+        <div ref={transcriptEnd} />
+      </div>
 
-      <VoiceOrb state={connection === ConnectionState.Connecting ? "connecting" : state} volume={volume} />
-
-      {/* Browsers block audio until the user interacts; offer the tap they require. */}
-      {!canPlayAudio && (
-        // Only onClick: the hook's props target a plain <button>, and its CSS onAnimationStart clashes with Motion's.
-        <Button variant="ghost" onClick={startAudioProps.onClick}>
-          Tap to enable audio
+      {/* Control bar: secondary actions on the left, hang up on the right, like a call app. */}
+      <div className="flex items-center gap-2 border-t border-line px-4 py-3">
+        <Tip label={isMicrophoneEnabled ? "Mute microphone" : "Unmute microphone"}>
+          <Button
+            variant={isMicrophoneEnabled ? "secondary" : "primary"}
+            size="icon"
+            aria-label={isMicrophoneEnabled ? "Mute microphone" : "Unmute microphone"}
+            aria-pressed={!isMicrophoneEnabled}
+            onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+          >
+            {isMicrophoneEnabled ? <Mic size={16} /> : <MicOff size={16} />}
+          </Button>
+        </Tip>
+        <Tip label="Refresh tickets">
+          <Button variant="secondary" size="icon" aria-label="Refresh tickets" onClick={onActivity}>
+            <RefreshCw size={15} />
+          </Button>
+        </Tip>
+        <Button variant="danger" onClick={onHangUp} className="ml-auto">
+          <PhoneOff size={15} />
+          End call
         </Button>
-      )}
-
-      <ul className="max-h-56 w-full space-y-2 overflow-y-auto" aria-live="polite" aria-label="Conversation transcript">
-        <AnimatePresence initial={false}>
-          {recent.map((t) => {
-            const mine = t.participantInfo.identity === localParticipant.identity;
-            return (
-              <motion.li
-                key={t.streamInfo.id}
-                layout
-                initial={{ opacity: 0, y: 10, x: mine ? 12 : -12 }}
-                animate={{ opacity: 1, y: 0, x: 0 }}
-                exit={{ opacity: 0 }}
-                className={`flex ${mine ? "justify-end" : "justify-start"}`}
-              >
-                <span
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${
-                    mine ? "rounded-br-md bg-linear-to-br from-accent to-accent/80 text-white" : "rounded-bl-md border border-line bg-surface-strong text-fg"
-                  }`}
-                >
-                  {t.text}
-                </span>
-              </motion.li>
-            );
-          })}
-        </AnimatePresence>
-      </ul>
-
-      {/* Call controls: round, icon-first, like a phone. */}
-      <div className="flex items-center gap-3 pt-1">
-        <ControlButton
-          label={isMicrophoneEnabled ? "Mute microphone" : "Unmute microphone"}
-          active={!isMicrophoneEnabled}
-          onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
-        >
-          {isMicrophoneEnabled ? <MicIcon /> : <MicOffIcon />}
-        </ControlButton>
-        <ControlButton label="Refresh tickets" onClick={onActivity}>
-          <RefreshIcon />
-        </ControlButton>
-        <motion.button
-          whileTap={{ scale: 0.92 }}
-          whileHover={{ scale: 1.04 }}
-          onClick={onHangUp}
-          aria-label="End call"
-          title="End call"
-          className="grid size-14 place-items-center rounded-full bg-danger text-white shadow-lg shadow-danger/30"
-        >
-          <PhoneOffIcon width={22} height={22} />
-        </motion.button>
       </div>
     </div>
-  );
-}
-
-function ControlButton({ label, active = false, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.92 }}
-      whileHover={{ scale: 1.04 }}
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={active}
-      title={label}
-      className={`grid size-12 place-items-center rounded-full border transition-colors ${
-        active ? "border-transparent bg-fg text-canvas" : "border-line bg-surface-strong text-fg"
-      }`}
-    >
-      {children}
-    </motion.button>
   );
 }

@@ -12,7 +12,7 @@
 | 6. Voice agent | STT → LLM → TTS pipeline, explicit dispatch, recording opt-in |
 | 7. Tool calling | Ticket lookup and creation, room-bound delegation, idempotency, timeouts and bounded retries |
 | 8. Knowledge base | Ingestion, full-text retrieval with a measured threshold, grounded answers with sources |
-| 9. Web app | React UI with an audio-reactive voice orb, error and permission handling, reduced-motion support |
+| 9. Web app | React UI (Radix UI primitives) with an audio-reactive bar visualizer and live transcript, error and permission handling, reduced-motion support |
 
 Test suites: API 127 tests, agent 13 tests.
 

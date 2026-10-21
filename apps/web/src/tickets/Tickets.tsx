@@ -1,8 +1,10 @@
+import { Inbox, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { Tabs } from "radix-ui";
 import { type FormEvent, useState } from "react";
 import { api, type Ticket } from "../api/client";
-import { InboxIcon, PlusIcon } from "../ui/icons";
-import { Button, ErrorBanner, Field, PriorityDot, StatusPill, spring } from "../ui/primitives";
+import { DialogClose, DialogContent, DialogRoot, DialogTrigger } from "../ui/dialog";
+import { Button, ErrorBanner, Field, PriorityIcon, STATUS_LABEL, StatusIcon, TextAreaField, Tip } from "../ui/primitives";
 
 export type TicketFilter = "all" | Ticket["status"];
 export const FILTERS: { value: TicketFilter; label: string }[] = [
@@ -29,47 +31,51 @@ function timeAgo(iso: string): string {
   return "just now";
 }
 
+// Underlined tabs (Radix Tabs: arrow-key navigation and tab semantics built in). The list itself is
+// rendered below the tab bar for whichever tab is active, so there is a single Tabs.Content.
 export function FilterTabs({
   value,
   counts,
   onChange,
+  children,
 }: {
   value: TicketFilter;
   counts: Record<TicketFilter, number>;
   onChange: (filter: TicketFilter) => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1 text-sm" role="tablist">
-      {FILTERS.map((filter) => (
-        <button
-          key={filter.value}
-          role="tab"
-          aria-selected={value === filter.value}
-          onClick={() => onChange(filter.value)}
-          className="relative shrink-0 rounded-lg px-3 py-1.5 font-medium"
-        >
-          {value === filter.value && <motion.span layoutId="ticket-filter" transition={spring} className="absolute inset-0 rounded-lg bg-surface-strong shadow-sm" />}
-          <span className={`relative flex items-center gap-1.5 transition-colors ${value === filter.value ? "text-fg" : "text-muted hover:text-fg"}`}>
+    <Tabs.Root value={value} onValueChange={(v) => onChange(v as TicketFilter)}>
+      <Tabs.List aria-label="Filter tickets by status" className="flex gap-5 overflow-x-auto border-b border-line px-5">
+        {FILTERS.map((filter) => (
+          <Tabs.Trigger
+            key={filter.value}
+            value={filter.value}
+            className="group relative flex h-10 shrink-0 items-center gap-1.5 text-[13px] font-medium text-muted transition-colors hover:text-fg data-[state=active]:text-fg"
+          >
             {filter.label}
-            <span className="rounded-md bg-surface px-1.5 text-[11px] tabular-nums text-muted">{counts[filter.value]}</span>
-          </span>
-        </button>
-      ))}
-    </div>
+            <span className="text-xs text-faint tabular-nums">{counts[filter.value]}</span>
+            <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-fg opacity-0 transition-opacity group-data-[state=active]:opacity-100" />
+          </Tabs.Trigger>
+        ))}
+      </Tabs.List>
+      <Tabs.Content value={value} tabIndex={-1} className="focus-visible:outline-none">
+        {children}
+      </Tabs.Content>
+    </Tabs.Root>
   );
 }
 
 export function TicketList({ tickets, loading, filtered }: { tickets: Ticket[]; loading: boolean; filtered: boolean }) {
   if (loading) {
     return (
-      <div className="space-y-3" aria-busy>
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="h-[78px] rounded-2xl border border-line bg-surface"
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.15 }}
-          />
+      <div className="divide-y divide-line" aria-busy>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex h-16 items-center gap-4 px-5">
+            <span className="size-3.5 animate-pulse rounded-full bg-wash" />
+            <span className="h-3 w-2/5 animate-pulse rounded bg-wash" />
+            <span className="ml-auto h-3 w-16 animate-pulse rounded bg-wash" />
+          </div>
         ))}
       </div>
     );
@@ -77,66 +83,70 @@ export function TicketList({ tickets, loading, filtered }: { tickets: Ticket[]; 
 
   if (tickets.length === 0) {
     return (
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass flex flex-col items-center gap-3 rounded-3xl px-6 py-14 text-center">
-        <span className="grid size-12 place-items-center rounded-2xl bg-accent/12 text-accent">
-          <InboxIcon width={22} height={22} />
-        </span>
-        <p className="font-medium">{filtered ? "No tickets in this view" : "No tickets yet"}</p>
-        <p className="max-w-xs text-sm text-muted">
-          {filtered ? "Try another filter." : "Create one here, or start a call and just tell the assistant what's wrong."}
+      <div className="flex flex-col items-center px-6 py-16 text-center">
+        <Inbox aria-hidden size={22} className="text-faint" />
+        <p className="mt-3 text-sm font-medium">{filtered ? "No tickets in this view" : "No tickets yet"}</p>
+        <p className="mt-1 max-w-xs text-sm text-muted">
+          {filtered ? "Try another filter." : "Create one, or start a call and tell the assistant what's wrong."}
         </p>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    // layout + AnimatePresence: tickets (including ones the voice assistant creates) slide in, filtered-out
-    // ones fade away, and the rest glide into place instead of jumping.
-    <motion.ul layout className="space-y-2.5">
-      <AnimatePresence initial={false} mode="popLayout">
-        {tickets.map((ticket, i) => (
+    // Tickets the voice assistant creates slide in at the top; the rest glide into place.
+    <ul className="divide-y divide-line">
+      <AnimatePresence initial={false}>
+        {tickets.map((ticket) => (
           <motion.li
             key={ticket.id}
-            layout
-            initial={{ opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1, transition: { ...spring, delay: Math.min(i, 8) * 0.035 } }}
-            exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.15 } }}
-            whileHover={{ y: -2 }}
-            className="glass group flex items-center gap-4 rounded-2xl px-5 py-4"
+            layout="position"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
           >
-            <PriorityDot priority={ticket.priority} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-xs text-muted">#{ticket.number}</span>
-                <p className="truncate text-sm font-medium">{ticket.subject}</p>
+            <div className="flex items-start gap-3.5 px-5 py-3.5 transition-colors hover:bg-subtle">
+              <span className="mt-0.75">
+                <PriorityIcon priority={ticket.priority} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-xs text-faint">#{ticket.number}</span>
+                  <p className="truncate text-sm font-medium">{ticket.subject}</p>
+                </div>
+                <p className="mt-0.5 truncate text-[13px] text-muted">{ticket.description}</p>
               </div>
-              <p className="mt-0.5 truncate text-xs text-muted">{ticket.description}</p>
+              <div className="flex shrink-0 items-center gap-4 pt-0.5">
+                <Tip label={new Date(ticket.updatedAt).toLocaleString()}>
+                  <span className="hidden text-xs text-faint tabular-nums sm:block">{timeAgo(ticket.updatedAt)}</span>
+                </Tip>
+                <span className="flex items-center gap-1.5 text-xs text-muted sm:w-24">
+                  <StatusIcon status={ticket.status} />
+                  <span className="sr-only sm:not-sr-only">{STATUS_LABEL[ticket.status]}</span>
+                </span>
+              </div>
             </div>
-            <span className="hidden text-xs text-muted sm:block" title={new Date(ticket.updatedAt).toLocaleString()}>
-              {timeAgo(ticket.updatedAt)}
-            </span>
-            <StatusPill status={ticket.status} />
           </motion.li>
         ))}
       </AnimatePresence>
-    </motion.ul>
+    </ul>
   );
 }
 
-export function NewTicketForm({ onCreated }: { onCreated: (ticket: Ticket) => void }) {
+export function NewTicketDialog({ onCreated }: { onCreated: (ticket: Ticket) => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
+    const form = new FormData(event.currentTarget);
     setBusy(true);
     setError(null);
     try {
       onCreated(await api.createTicket(String(form.get("subject") ?? ""), String(form.get("description") ?? "")));
-      formElement.reset();
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the ticket.");
@@ -146,35 +156,34 @@ export function NewTicketForm({ onCreated }: { onCreated: (ticket: Ticket) => vo
   }
 
   return (
-    <div className="w-full">
-      <div className="flex justify-end">
-        <Button variant={open ? "ghost" : "primary"} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
-          <motion.span animate={{ rotate: open ? 45 : 0 }} transition={spring} className="grid">
-            <PlusIcon />
-          </motion.span>
-          {open ? "Cancel" : "New ticket"}
+    <DialogRoot
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setError(null);
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="secondary" size="sm">
+          <Plus size={15} />
+          New ticket
         </Button>
-      </div>
-      <AnimatePresence>
-        {open && (
-          <motion.form
-            onSubmit={submit}
-            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-            animate={{ opacity: 1, height: "auto", marginTop: 12 }}
-            exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            className="glass space-y-4 overflow-hidden rounded-3xl p-6"
-          >
-            <Field label="Subject" name="subject" required minLength={3} maxLength={200} placeholder="Refund not received" autoFocus />
-            <Field label="Description" name="description" required maxLength={5000} placeholder="What happened, and when?" />
-            <ErrorBanner message={error} />
-            <div className="flex justify-end">
-              <Button type="submit" busy={busy}>
-                Create ticket
-              </Button>
-            </div>
-          </motion.form>
-        )}
-      </AnimatePresence>
-    </div>
+      </DialogTrigger>
+      <DialogContent title="New ticket" description="Describe the problem. You can check on it later by voice, too.">
+        <form onSubmit={submit} className="space-y-4">
+          <Field label="Subject" name="subject" required minLength={3} maxLength={200} placeholder="Refund not received" />
+          <TextAreaField label="Description" name="description" required maxLength={5000} placeholder="What happened, and when?" />
+          <ErrorBanner message={error} />
+          <div className="flex justify-end gap-2 pt-1">
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" busy={busy}>
+              Create ticket
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </DialogRoot>
   );
 }

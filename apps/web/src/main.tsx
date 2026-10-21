@@ -3,6 +3,11 @@ import "./zod-config";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+// Fonts are bundled and served from our own origin: no third-party request, and the CSP stays 'self'.
+import "@fontsource-variable/instrument-sans";
+import "@fontsource/instrument-serif/400.css";
+import "@fontsource/instrument-serif/400-italic.css";
+import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 
 const root = document.getElementById("root");
