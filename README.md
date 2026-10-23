@@ -10,7 +10,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-[Demo](#demo) · [Highlights](#engineering-highlights) · [Architecture](#architecture) · [Quick start](#quick-start) · [Docs](#documentation)
+[Demo](#demo) · [Highlights](#engineering-highlights) · [Architecture](#architecture) · [Quick start](#quick-start) · [Tests](#tests) · [Troubleshooting](#troubleshooting) · [Docs](#documentation)
 
 </div>
 
@@ -167,7 +167,42 @@ cd apps/agent; npm run dev                        # registers with LiveKit Cloud
 cd apps/web;   npm run dev                        # http://localhost:5173
 ```
 
-Run the tests with `npm test` in `apps/api` (against a separate `voicedesk_test` database) and in `apps/agent`.
+## Tests
+
+**140 tests:** 127 API integration tests and 13 voice-agent tests.
+
+```powershell
+# Once: create the test database (the tests refuse to run against any database not ending in _test)
+"CREATE DATABASE voicedesk_test;" | docker exec -i voicedesk-postgres psql -U voicedesk -d voicedesk
+
+cd apps/api;   npm test      # real HTTP against a real PostgreSQL; migrations applied automatically
+cd apps/agent; npm test      # the agent's API client: retries, timeouts, cancellation, idempotency
+```
+
+The API tests cover sign-up and login, ticket ownership and field permissions, pagination, idempotency, database outages, voice sessions, the agent's delegated access, help-center search and the usage limits (including 5 simultaneous call requests, of which exactly 3 succeed).
+
+## Useful scripts
+
+Run these from `apps/api`:
+
+| Command | What it does |
+| --- | --- |
+| `npm run kb:ingest` | Loads the help articles in `apps/api/knowledge/` into the database. Unchanged articles are skipped, so it is safe to run repeatedly. |
+| `npm run kb:eval` | Measures search quality on 15 known questions: the right article first, and nothing returned for questions the help center cannot answer. Run it after editing articles. |
+| `npm run livekit:check` | Confirms your LiveKit URL, key and secret are accepted by LiveKit Cloud. |
+| `npm run user:set-role -- <email> <customer\|agent>` | Promotes a user to support agent (or back). Deliberately not an API endpoint. |
+
+## Troubleshooting
+
+| What you see | Cause and fix |
+| --- | --- |
+| Sign-in says **"Service temporarily unavailable, try again shortly"** | PostgreSQL is not running. Start Docker Desktop, then run `docker compose up -d --wait`. |
+| The web app fails with **`Failed to resolve import "@fontsource…"`** (or any package) | Installed packages no longer match `package.json`, usually after switching branches or discarding changes. Run `npm install` at the repository root. |
+| The call connects but the assistant never speaks | The agent is not running (`cd apps/agent; npm run dev`), or `LIVEKIT_AGENT_NAME` differs between `apps/api/.env` and `apps/agent/.env`. |
+| **"Microphone access is blocked"** | Allow the microphone from the icon in the address bar. Browsers only allow microphones on `https://` pages or `localhost`. |
+| **"You have used today's calls"** | The limit is 3 calls per user per 24 hours. Raise `VOICE_SESSIONS_PER_USER_PER_DAY` in `apps/api/.env` for local testing. |
+| The first answer takes about 9 seconds | In development the agent starts a fresh process for each call. Production mode keeps one warm. |
+| The API exits at startup with **"Invalid environment configuration"** | A variable in `.env` is missing or malformed; the message names it. Compare with `.env.example`. |
 
 ## Deployment
 
@@ -201,6 +236,10 @@ The stack has been tested end to end locally: HTTPS, sign-up, a live LiveKit cal
 | [Knowledge base](docs/knowledge-base.md) | Ingestion, retrieval, evaluation, known limits |
 | [Design decisions](docs/decisions.md) | Key trade-offs, and what would change them |
 | [Status and roadmap](docs/roadmap.md) | What is done, known issues, what is next |
+
+## Author
+
+Built by **[prince9118](https://github.com/prince9118)**: design, backend, voice agent, frontend and deployment.
 
 ## License
 
