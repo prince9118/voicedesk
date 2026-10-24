@@ -1,0 +1,94 @@
+# Runs every test suite on Linux for each push to main and each pull request.
+# Three independent jobs, so a failure in one app is visible without hiding the others.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Same version as the Dockerfiles. npm 11 ships with it; npm 10 fails on some peer dependencies.
+  NODE_VERSION: "24.15.0"
+
+jobs:
+  api:
+    name: API (typecheck, build, 139 tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: voicedesk
+          POSTGRES_PASSWORD: voicedesk
+          # The tests refuse to touch any database whose name does not end in _test.
+          POSTGRES_DB: voicedesk_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U voicedesk -d voicedesk_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://voicedesk:voicedesk@localhost:5432/voicedesk_test
+      # Only read by the Prisma CLI while generating the client; the tests set their own environment.
+      DATABASE_URL: postgresql://voicedesk:voicedesk@localhost:5432/voicedesk_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --workspace @voicedesk/api --include-workspace-root --no-audit --no-fund
+      - run: npx prisma generate
+        working-directory: apps/api
+      - run: npm run typecheck
+        working-directory: apps/api
+      - run: npm run build
+        working-directory: apps/api
+      - run: npm test
+        working-directory: apps/api
+
+  agent:
+    name: Voice agent (typecheck, build, 24 tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --workspace @voicedesk/agent --include-workspace-root --no-audit --no-fund
+      - run: npm run typecheck
+        working-directory: apps/agent
+      - run: npm run build
+        working-directory: apps/agent
+      - run: npm test
+        working-directory: apps/agent
+
+  web:
+    name: Web app (typecheck, 48 tests, production build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --workspace @voicedesk/web --include-workspace-root --no-audit --no-fund
+      - run: npm test
+        working-directory: apps/web
+      # Typechecks first, then builds the static site exactly as the Docker image does.
+      - run: npm run build
+        working-directory: apps/web
