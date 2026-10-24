@@ -1,9 +1,12 @@
 import type { AgentState } from "@livekit/components-react";
-import { ArrowRight, BookOpen, Check, Inbox, Mic, MessageSquareText, PhoneOff, TicketPlus } from "lucide-react";
+import { BookOpen, Inbox, Mic, MessageSquareText, PhoneOff, Plus, TicketPlus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { User } from "../api/client";
 import { AuthDialog, type AuthMode } from "../auth/AuthDialog";
+import { AsciiField } from "../home/AsciiField";
+import { Composer, Headline, ToolButton } from "../home/Composer";
+import { rememberPendingQuestion } from "../home/pending-question";
 import { Logo } from "../ui/icons";
 import { Button, fadeUp } from "../ui/primitives";
 import { ThemeToggle } from "../ui/theme";
@@ -22,27 +25,36 @@ const reveal = {
 export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User) => void }) {
   const [dialog, setDialog] = useState<{ open: boolean; mode: AuthMode }>({ open: false, mode: "login" });
   const openDialog = (mode: AuthMode) => setDialog({ open: true, mode });
+  const [question, setQuestion] = useState("");
+  const hero = useRef<HTMLDivElement>(null);
+
+  // Visitors can ask right away: we keep the question, ask them to sign up, and it is waiting in the
+  // composer once they are in.
+  function ask() {
+    rememberPendingQuestion(question);
+    openDialog("register");
+  }
 
   return (
     <motion.div {...fadeUp}>
-      <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <a href="#top" className="flex items-center gap-2.5">
-            <Logo size={26} />
-            <span className="font-semibold tracking-tight">VoiceDesk</span>
+      <header className="absolute inset-x-0 top-0 z-30">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+          <a href="#top" className="flex items-center gap-2">
+            <Logo size={24} />
+            <span className="text-sm font-medium tracking-tight">VoiceDesk</span>
           </a>
-          <nav className="hidden items-center gap-6 text-sm text-muted md:flex" aria-label="Sections">
-            <a href="#features" className="transition-colors hover:text-fg">
-              Features
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-fg">
-              How it works
-            </a>
-            <a href="#benefits" className="transition-colors hover:text-fg">
-              Why voice
-            </a>
+          <nav className="glass-panel absolute left-1/2 hidden h-9 -translate-x-1/2 items-center gap-1 rounded-xl px-1.5 text-[13px] font-light text-muted md:flex" aria-label="Sections">
+            {[
+              ["#features", "Features"],
+              ["#how-it-works", "How it works"],
+              ["#benefits", "Why voice"],
+            ].map(([href, label]) => (
+              <a key={href} href={href} className="rounded-lg px-2.5 py-1 transition-colors hover:bg-wash hover:text-fg">
+                {label}
+              </a>
+            ))}
           </nav>
-          <div className="flex items-center gap-1.5">
+          <div className="glass-panel flex items-center gap-1 rounded-xl p-1">
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={() => openDialog("login")}>
               Sign in
@@ -55,45 +67,35 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
       </header>
 
       <main id="top">
-        {/* Hero */}
-        <section className="mx-auto grid max-w-6xl items-center gap-14 px-4 pt-16 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-24 lg:pb-28">
-          <div>
-            <motion.p {...reveal} className="flex items-center gap-2 text-sm text-muted">
-              <span className="size-1.5 rounded-full bg-accent" />
-              Voice customer support, in your browser
-            </motion.p>
-            <motion.h1
-              {...reveal}
-              transition={{ ...reveal.transition, delay: 0.05 }}
-              className="mt-5 font-serif text-5xl leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl"
-            >
-              Support that <em className="text-accent-text">listens.</em>
-            </motion.h1>
-            <motion.p {...reveal} transition={{ ...reveal.transition, delay: 0.1 }} className="mt-6 max-w-md text-lg leading-relaxed text-muted">
-              Talk to an assistant that checks your tickets, opens new ones, and answers from the help center. Plain conversation, no hold
-              music.
-            </motion.p>
-            <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.15 }} className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" onClick={() => openDialog("register")}>
-                Start talking
-                <ArrowRight size={16} />
-              </Button>
-              <Button size="lg" variant="secondary" onClick={() => openDialog("login")}>
-                I have an account
-              </Button>
+        {/* Hero: the hands reach across the question box. */}
+        <section className="relative grid min-h-[100svh] place-items-center overflow-hidden px-4 py-28">
+          <AsciiField anchorRef={hero} />
+          <div ref={hero} className="relative z-10 w-full max-w-[640px]">
+            <motion.div {...reveal} className="mb-8">
+              <Headline>support that listens.</Headline>
+              <p className="mx-auto mt-4 max-w-md text-center text-[15px] font-light text-muted">
+                Talk or type to an assistant that checks your tickets, opens new ones, and answers from the help center.
+              </p>
             </motion.div>
-            <motion.ul {...reveal} transition={{ ...reveal.transition, delay: 0.2 }} className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-              {["Free to try", "Only sees your tickets", "Cites its sources"].map((item) => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <Check size={14} className="text-success" />
-                  {item}
-                </li>
-              ))}
-            </motion.ul>
+            <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
+              <Composer
+                value={question}
+                onChange={setQuestion}
+                onSubmit={ask}
+                placeholder="Ask VoiceDesk anything…"
+                tools={
+                  <>
+                    <ToolButton label="More" onClick={() => openDialog("register")}>
+                      <Plus size={18} strokeWidth={1.6} />
+                    </ToolButton>
+                    <ToolButton label="Start a voice call" onClick={ask}>
+                      <Mic size={17} strokeWidth={1.7} />
+                    </ToolButton>
+                  </>
+                }
+              />
+            </motion.div>
           </div>
-          <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
-            <DemoCall />
-          </motion.div>
         </section>
 
         {/* What it can do */}
@@ -116,11 +118,16 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
 
         {/* How it works */}
         <Section id="how-it-works" eyebrow="How it works" title="From question to answer in three steps.">
-          <ol className="grid gap-10 md:grid-cols-3 md:gap-8">
-            <Step n={1} title="Create an account" text="Sign up with your email. It takes less than a minute." />
-            <Step n={2} title="Start a call" text="Press Start a call and allow your microphone when the browser asks." />
-            <Step n={3} title="Just talk" text={'Ask anything, like "How long do refunds take?" or "My invoice is wrong."'} />
-          </ol>
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
+            <ol className="grid gap-8">
+              <Step n={1} title="Create an account" text="Sign up with your email. It takes less than a minute." />
+              <Step n={2} title="Ask, by voice or text" text="Tap the microphone to talk, or just type. Your browser asks for the mic only when you use it." />
+              <Step n={3} title="Get an answer" text={'Ask anything, like "How long do refunds take?" or "My invoice is wrong."'} />
+            </ol>
+            <motion.div {...reveal}>
+              <DemoCall />
+            </motion.div>
+          </div>
         </Section>
 
         {/* Benefits */}
@@ -134,9 +141,9 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
 
         {/* Final call to action */}
         <section className="mx-auto max-w-6xl px-4 pt-8 pb-24 sm:px-6">
-          <motion.div {...reveal} className="flex flex-col items-start justify-between gap-6 rounded-xl bg-fg px-8 py-10 text-canvas sm:flex-row dark:border dark:border-line dark:bg-surface dark:text-fg sm:items-center sm:px-10">
+          <motion.div {...reveal} className="flex flex-col items-start justify-between gap-6 rounded-xl bg-fg px-8 py-10 text-canvas sm:flex-row dark:border dark:border-line dark:bg-surface dark:text-fg dark:border dark:border-line dark:bg-surface dark:text-fg sm:items-center sm:px-10">
             <div>
-              <h2 className="font-serif text-4xl tracking-tight">Ready to talk?</h2>
+              <h2 className="text-4xl font-extralight tracking-[-0.03em]">Ready to talk?</h2>
               <p className="mt-2 opacity-70">Create an account and start your first call in under a minute.</p>
             </div>
             <Button size="lg" variant="accent" onClick={() => openDialog("register")}>
@@ -175,7 +182,7 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
     <section id={id} className="mx-auto max-w-6xl scroll-mt-16 px-4 py-16 sm:px-6 lg:py-20">
       <motion.div {...reveal} className="mb-10 max-w-2xl">
         <p className="text-sm font-medium text-accent-text">{eyebrow}</p>
-        <h2 className="mt-2 font-serif text-4xl leading-tight tracking-tight sm:text-[2.75rem]">{title}</h2>
+        <h2 className="mt-2 text-4xl leading-tight font-extralight tracking-[-0.03em] sm:text-[2.75rem]">{title}</h2>
       </motion.div>
       {children}
     </section>
@@ -197,8 +204,8 @@ function Feature({ icon, title, example, children }: { icon: ReactNode; title: s
 
 function Step({ n, title, text }: { n: number; title: string; text: string }) {
   return (
-    <motion.li {...reveal} transition={{ ...reveal.transition, delay: (n - 1) * 0.06 }} className="border-t border-line-strong pt-5">
-      <span className="font-serif text-3xl text-faint">0{n}</span>
+    <motion.li {...reveal} transition={{ ...reveal.transition, delay: (n - 1) * 0.06 }} className="border-t border-line pt-5">
+      <span className="font-mono text-sm text-faint">0{n}</span>
       <h3 className="mt-3 font-semibold tracking-tight">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
     </motion.li>
@@ -209,7 +216,7 @@ function Benefit({ stat, label, text }: { stat: string; label: string; text: str
   return (
     <motion.div {...reveal} className="bg-surface p-6 sm:p-8">
       <dt>
-        <span className="font-serif text-4xl tracking-tight">{stat}</span>
+        <span className="text-4xl font-extralight tracking-[-0.03em]">{stat}</span>
         <span className="ml-2 text-sm text-muted">{label}</span>
       </dt>
       <dd className="mt-3 text-sm leading-relaxed text-muted">{text}</dd>

@@ -19,6 +19,7 @@ export const STATE_LABEL: Partial<Record<AgentState, string>> = {
 const SIZES = {
   md: { bar: 18, gap: 6, max: 76 },
   lg: { bar: 22, gap: 7, max: 96 },
+  sm: { bar: 3, gap: 2, max: 14 },
 };
 
 export function VoiceBars({ state, bands, size = "lg" }: { state: AgentState; bands: number[]; size?: keyof typeof SIZES }) {

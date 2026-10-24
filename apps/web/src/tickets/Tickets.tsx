@@ -1,9 +1,9 @@
-import { Inbox, Plus } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Tabs } from "radix-ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { api, type Ticket } from "../api/client";
-import { DialogClose, DialogContent, DialogRoot, DialogTrigger } from "../ui/dialog";
+import { DialogClose, DialogContent, DialogRoot } from "../ui/dialog";
 import { Button, ErrorBanner, Field, PriorityIcon, STATUS_LABEL, StatusIcon, TextAreaField, Tip } from "../ui/primitives";
 
 export type TicketFilter = "all" | Ticket["status"];
@@ -135,10 +135,23 @@ export function TicketList({ tickets, loading, filtered }: { tickets: Ticket[]; 
   );
 }
 
-export function NewTicketDialog({ onCreated }: { onCreated: (ticket: Ticket) => void }) {
-  const [open, setOpen] = useState(false);
+// Controlled: opened from the composer's "+" menu or the History panel.
+export function NewTicketDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (ticket: Ticket) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Opening is controlled from outside, so clear any old error whenever it opens.
+  useEffect(() => {
+    if (open) setError(null);
+  }, [open]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -147,7 +160,7 @@ export function NewTicketDialog({ onCreated }: { onCreated: (ticket: Ticket) => 
     setError(null);
     try {
       onCreated(await api.createTicket(String(form.get("subject") ?? ""), String(form.get("description") ?? "")));
-      setOpen(false);
+      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the ticket.");
     } finally {
@@ -156,19 +169,7 @@ export function NewTicketDialog({ onCreated }: { onCreated: (ticket: Ticket) => 
   }
 
   return (
-    <DialogRoot
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (next) setError(null);
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button variant="secondary" size="sm">
-          <Plus size={15} />
-          New ticket
-        </Button>
-      </DialogTrigger>
+    <DialogRoot open={open} onOpenChange={onOpenChange}>
       <DialogContent title="New ticket" description="Describe the problem. You can check on it later by voice, too.">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Subject" name="subject" required minLength={3} maxLength={200} placeholder="Refund not received" />
