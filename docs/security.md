@@ -7,7 +7,7 @@
 | Password storage | `crypto.scrypt` (N=2^15, r=8, p=3: an OWASP-recommended setting), random salt per user, parameters stored with each hash so they can be raised later |
 | Why those parameters | The stronger N=2^17 setting needs 128 MiB per hash; four concurrent logins would exhaust a 512 MB server |
 | Password policy | 12 to 128 characters, no composition rules (NIST SP 800-63B); NFKC-normalized before hashing |
-| Sessions | 32 random bytes, valid 7 days. Only the SHA-256 of the token is stored, so a leaked `sessions` table cannot be used to sign in. |
+| Sessions | 32 random bytes, valid 7 days. Only the SHA-256 of the token is stored, so a leaked `sessions` table cannot be used to sign in. Expired sessions are deleted hourly. |
 | Why not JWTs | A JWT cannot be revoked before it expires. Database sessions make logout work immediately, and role changes apply on the next request. |
 | User enumeration | Wrong password and unknown email give the same response and take the same time (a dummy hash is verified for unknown emails) |
 | Duplicate accounts | Emails are lowercased, and a unique index decides between two simultaneous registrations |
@@ -88,4 +88,3 @@ Behind the production proxy the API trusts exactly one hop (`TRUST_PROXY=true`).
 These are tracked in the [roadmap](roadmap.md#known-issues):
 
 - Per-IP limits on sign-up and login are kept in memory: they reset when the API restarts and are not shared between several API instances.
-- Expired sessions and voice sessions are rejected but not yet cleaned up in bulk.

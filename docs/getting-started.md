@@ -107,7 +107,8 @@ Create an account in the web app, then choose **Start call** and allow microphon
 
 ```powershell
 cd apps/api;   npm test      # integration tests against a separate voicedesk_test database
-cd apps/agent; npm test      # unit tests for the agent's API client
+cd apps/agent; npm test      # unit tests for the agent's API client and call summary
+cd apps/web;   npm test      # component and API-client tests in a simulated browser
 npm run typecheck            # in any app: typechecks source and tests
 ```
 
@@ -116,6 +117,8 @@ The API tests create `voicedesk_test` tables automatically (`prisma migrate depl
 ```powershell
 "CREATE DATABASE voicedesk_test;" | docker exec -i voicedesk-postgres psql -U voicedesk -d voicedesk
 ```
+
+The same suites run on every push in GitHub Actions ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)): the API tests against a PostgreSQL service container, the agent and web tests, and a production build of the web app.
 
 ## Useful scripts (`apps/api`)
 
@@ -136,3 +139,4 @@ The API tests create `voicedesk_test` tables automatically (`prisma migrate depl
 | Call connects but the assistant never speaks | The agent is not running, or `LIVEKIT_AGENT_NAME` differs between API and agent |
 | Assistant says the ticket system is unavailable | `AGENT_API_KEY` differs between the two `.env` files, or the API is down |
 | `Cannot read properties of null (reading 'edgesOut')` during `npm install` | npm 10 peer-dependency bug; use npm 11 |
+| `Failed to resolve import "@fontsource…"` (or any package) | `node_modules` no longer matches `package.json`, usually after switching branches or discarding changes: run `npm install` at the repository root |

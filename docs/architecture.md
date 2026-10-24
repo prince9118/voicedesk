@@ -4,7 +4,7 @@
 
 | Component | Location | Responsibility |
 | --- | --- | --- |
-| **Web app** | `apps/web` | Sign-in, ticket list, voice call UI. Talks to the API over HTTPS and to LiveKit over WebRTC. |
+| **Web app** | `apps/web` | Landing page, sign-in, and a single-prompt home screen where the customer types or talks, with a ticket history panel. Talks to the API over HTTPS and to LiveKit over WebRTC. |
 | **API** | `apps/api` | The only component that touches the database. Owns authentication, authorization, tickets, voice-session tokens and help-center search. |
 | **Voice agent** | `apps/agent` | A worker that LiveKit dispatches into support calls. Runs speech-to-text → LLM → text-to-speech and calls the API through tools. |
 | **PostgreSQL** | Docker | Users, sessions, tickets, voice sessions, help-center articles. |
@@ -145,6 +145,13 @@ request → httpLogger (request ID) → cors → express.json
 | Policy | `tickets/ticket.policy.ts` | Who may see or change what; all ticket rules in one file |
 | Store | `tickets/ticket.store.ts` | Database access; every query takes a required ownership scope |
 | Config | `config.ts` | The only file that reads `process.env`, validated at startup |
+| Maintenance | `maintenance.ts` | Hourly deletion of expired login sessions and old call records (see below) |
+| Shutdown | `shutdown.ts` | Graceful stop on `SIGTERM`/`SIGINT` with a 10-second deadline |
 | Errors | `errors.ts`, `error-handler.ts` | One place decides what an error response looks like |
 
 Responses always have the shape `{ "data": … }` or `{ "error": { "code", "message", "details"? } }`.
+
+### Housekeeping and shutdown
+
+- **Cleanup** runs at startup and then hourly. It deletes login sessions past their expiry, and call records (`voice_sessions`) older than 48 hours. Call records are kept that long, not just for the one-hour agent delegation, because they are also the **ledger for the daily call limit**: the limit counts the last 24 hours of rows, so deleting a row early would let a user start more than 3 calls a day. A test fails if the retention is shortened.
+- **Shutdown** stops accepting connections, waits for in-flight requests, closes the database pool and exits 0. If that has not happened after 10 seconds (a stuck request or idle keep-alive connection), it closes the remaining connections and exits 1, so the process is never left waiting for the platform's `SIGKILL`.

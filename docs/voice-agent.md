@@ -67,6 +67,28 @@ The agent's API client (`voicedesk-api.ts`) treats the API as an unreliable netw
 | Caller interrupted | The request is cancelled and **not** retried |
 | Response doesn't match the expected shape | Treated as unavailable; never passed to the LLM |
 
+## Call summary
+
+When a call ends the agent logs one structured line, `Call summary`, so cost and speed can be tracked per call:
+
+```json
+{
+  "durationSeconds": 23,
+  "turns": 2,
+  "toolCalls": 1,
+  "responseLatencyMs": { "average": 2500, "p95": 2618, "max": 2618 },
+  "usage": { "sttSeconds": 0, "ttsCharacters": 346, "llmInputTokens": 2655, "llmOutputTokens": 99 },
+  "estimatedCostUsd": 0.0116
+}
+```
+
+(A real call from development: a typed question answered from the help center, so no speech-to-text time.)
+
+- **Response latency** runs from the assistant starting to think (the caller has finished) to it starting to speak. The first "thinking" of a turn counts, so time spent in tool calls is included: that is the wait the caller feels. An answer the caller interrupted is not timed.
+- **Usage** comes from the SDK's per-model records: audio seconds for speech-to-text, characters for text-to-speech, tokens for the LLM.
+- **Cost** is an estimate from LiveKit's list prices (constants in `src/call-summary.ts`), not a bill.
+- The logic is in `call-summary.ts` with no SDK imports, and is covered by 11 tests.
+
 ## Costs
 
 A rough estimate for a 5-minute call: STT about $0.024, TTS about $0.06 (the agent speaking roughly 2,000 characters), LLM about $0.01, so **about $0.10 per call**. The free plan's $2.50 of inference credit covers roughly 20 to 25 test calls. This is an estimate, not a measurement; per-call usage metrics are on the roadmap.

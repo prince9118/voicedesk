@@ -20,3 +20,6 @@ The significant choices, why they were made, and what would change them.
 | 14 | **`sessionStorage` for the web session token** | Survives reloads and clears with the tab; simpler than cookies plus CSRF protection | Deployment puts web and API on one site (consider httpOnly cookies) |
 | 15 | **Exact dependency versions, avoiding releases younger than about 2 weeks** | Malicious npm releases are usually caught within days | A security fix is needed sooner |
 | 16 | **Integration tests against a real database** | The bugs that mattered (slow queries, tie ordering, constraint errors) only appear with a real database | Never; add unit tests for pure logic alongside |
+| 17 | **Keep call records 48 hours, not 1** | `voice_sessions` is also the ledger for the daily call limit; deleting a row when its agent delegation expires (1 hour) would silently loosen the limit | The limit moves to its own counter table or to Redis |
+| 18 | **A 10-second deadline on graceful shutdown** | A stuck request must not keep the process alive until the platform sends `SIGKILL` and skips the clean database disconnect | Long-running requests (uploads, exports) are added: then drain them explicitly |
+| 19 | **Measure latency from "thinking" to "speaking"** | It includes tool calls, which is the wait the caller actually feels | The SDK exposes end-of-speech to first-audio directly |
