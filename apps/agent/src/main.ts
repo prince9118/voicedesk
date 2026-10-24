@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { type JobContext, ServerOptions, cli, defineAgent, inference, log, voice } from "@livekit/agents";
+import { CallStats } from "./call-summary.js";
 import { config } from "./config.js";
 import { createSupportAgent } from "./support-agent.js";
 import { VoiceDeskApi } from "./voicedesk-api.js";
@@ -32,8 +33,24 @@ export default defineAgent({
     session.on(voice.AgentSessionEventTypes.Error, (event) => {
       logger.error({ error: event.error }, "Agent session error");
     });
+
+    // Per-call metrics: response latency and tool use are only visible while the call runs; token,
+    // character and audio usage come from the SDK when it ends. One summary line per call.
+    const stats = new CallStats();
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, (event) => {
+      stats.onAgentState(event.newState, event.createdAt);
+    });
+    session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
+      stats.onToolsExecuted(event.functionCalls.length);
+    });
     session.on(voice.AgentSessionEventTypes.Close, (event) => {
       logger.info({ reason: event.reason }, "Agent session closed");
+      try {
+        logger.info({ callSummary: stats.summary(session.usage.modelUsage) }, "Call summary");
+      } catch (err) {
+        // Metrics must never get in the way of ending a call.
+        logger.warn({ err }, "Could not build the call summary");
+      }
     });
 
     // record defaults to true in the SDK (audio, transcript, logs, traces uploaded to LiveKit Cloud).
