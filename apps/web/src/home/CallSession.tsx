@@ -137,14 +137,15 @@ function InCall({ firstMessage, levels, tools, onEnd, onActivity }: Omit<CallSes
 
   return (
     <>
-      {/* The conversation grows upward from the headline, over the art. */}
+      {/* The conversation grows upward from the headline, over the art. Its height is capped to the space
+          above the headline, so a long conversation scrolls inside the panel instead of covering the header. */}
       <AnimatePresence>
         {lines.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="glass-panel absolute inset-x-0 bottom-full mb-8 max-h-[34vh] overflow-y-auto rounded-2xl bg-surface/95 px-5 py-4"
+            className="glass-panel absolute inset-x-0 bottom-full mb-8 max-h-[max(8rem,calc(50svh-13rem))] overflow-y-auto rounded-2xl bg-surface/95 px-5 py-4"
             aria-live="polite"
             aria-label="Conversation"
           >
