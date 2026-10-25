@@ -244,10 +244,7 @@ The stack has been tested end to end locally: HTTPS, sign-up, a live LiveKit cal
 | [Design decisions](docs/decisions.md) | Key trade-offs, and what would change them |
 | [Status and roadmap](docs/roadmap.md) | What is done, known issues, what is next |
 
-## Author
 
-Built by **[prince9118](https://github.com/prince9118)**: design, backend, voice agent, frontend and deployment.
+.
 
-## License
 
-[MIT](LICENSE).
