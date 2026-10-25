@@ -37,7 +37,12 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
 
   return (
     <motion.div {...fadeUp}>
-      <header className="absolute inset-x-0 top-0 z-30">
+      <motion.header
+        initial={{ opacity: 0, y: -14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        className="absolute inset-x-0 top-0 z-30"
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <a href="#top" className="flex items-center gap-2">
             <Logo size={24} />
@@ -64,7 +69,7 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
             </Button>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       <main id="top">
         {/* Hero: the hands reach across the question box. */}
@@ -125,7 +130,10 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
               <Step n={3} title="Get an answer" text={'Ask anything, like "How long do refunds take?" or "My invoice is wrong."'} />
             </ol>
             <motion.div {...reveal}>
-              <DemoCall />
+              {/* Drifts gently, like something alive. Stops for people who prefer reduced motion. */}
+              <motion.div animate={{ y: [0, -7, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}>
+                <DemoCall />
+              </motion.div>
             </motion.div>
           </div>
         </Section>
@@ -191,8 +199,8 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
 
 function Feature({ icon, title, example, children }: { icon: ReactNode; title: string; example: string; children: ReactNode }) {
   return (
-    <motion.div {...reveal} className="flex flex-col bg-surface p-6 sm:p-8">
-      <span className="text-muted">{icon}</span>
+    <motion.div {...reveal} className="group flex flex-col bg-surface p-6 transition-colors duration-300 hover:bg-subtle sm:p-8">
+      <span className="text-muted transition-transform duration-300 group-hover:-translate-y-1 group-hover:text-accent-text">{icon}</span>
       <h3 className="mt-4 font-semibold tracking-tight">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-muted">{children}</p>
       <p className="mt-5 self-start rounded-full border border-line bg-subtle px-3 py-1 text-[13px] text-muted">
@@ -204,7 +212,16 @@ function Feature({ icon, title, example, children }: { icon: ReactNode; title: s
 
 function Step({ n, title, text }: { n: number; title: string; text: string }) {
   return (
-    <motion.li {...reveal} transition={{ ...reveal.transition, delay: (n - 1) * 0.06 }} className="border-t border-line pt-5">
+    <motion.li {...reveal} transition={{ ...reveal.transition, delay: (n - 1) * 0.08 }} className="relative pt-5">
+      {/* The rule above each step draws itself from the left as it scrolls into view. */}
+      <motion.span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px origin-left bg-line-strong"
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.9, delay: 0.1 + (n - 1) * 0.12, ease: [0.22, 1, 0.36, 1] }}
+      />
       <span className="font-mono text-sm text-faint">0{n}</span>
       <h3 className="mt-3 font-semibold tracking-tight">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>

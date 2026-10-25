@@ -55,7 +55,13 @@ export function FilterTabs({
           >
             {filter.label}
             <span className="text-xs text-faint tabular-nums">{counts[filter.value]}</span>
-            <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-fg opacity-0 transition-opacity group-data-[state=active]:opacity-100" />
+            {value === filter.value && (
+              <motion.span
+                layoutId="ticket-filter-underline"
+                transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-fg"
+              />
+            )}
           </Tabs.Trigger>
         ))}
       </Tabs.List>
@@ -72,9 +78,9 @@ export function TicketList({ tickets, loading, filtered }: { tickets: Ticket[]; 
       <div className="divide-y divide-line" aria-busy>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="flex h-16 items-center gap-4 px-5">
-            <span className="size-3.5 animate-pulse rounded-full bg-wash" />
-            <span className="h-3 w-2/5 animate-pulse rounded bg-wash" />
-            <span className="ml-auto h-3 w-16 animate-pulse rounded bg-wash" />
+            <span className="shimmer size-3.5 rounded-full" />
+            <span className="shimmer h-3 w-2/5 rounded" />
+            <span className="shimmer ml-auto h-3 w-16 rounded" />
           </div>
         ))}
       </div>
@@ -96,15 +102,16 @@ export function TicketList({ tickets, loading, filtered }: { tickets: Ticket[]; 
   return (
     // Tickets the voice assistant creates slide in at the top; the rest glide into place.
     <ul className="divide-y divide-line">
-      <AnimatePresence initial={false}>
-        {tickets.map((ticket) => (
+      <AnimatePresence>
+        {tickets.map((ticket, index) => (
           <motion.li
             key={ticket.id}
             layout="position"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, height: 0, transition: { duration: 0.15 } }}
+            // Rows cascade in one after another (the first eight; later ones appear together).
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 8) * 0.045 }}
             className="overflow-hidden"
           >
             <div className="flex items-start gap-3.5 px-5 py-3.5 transition-colors hover:bg-subtle">

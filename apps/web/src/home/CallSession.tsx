@@ -165,12 +165,9 @@ function InCall({ firstMessage, levels, tools, onEnd, onActivity }: Omit<CallSes
         )}
       </AnimatePresence>
 
+      {/* Each state change decodes into place, so a pause visibly means "thinking", not "frozen". */}
       <div className="mb-8">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={label} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
-            <Headline>{label}…</Headline>
-          </motion.div>
-        </AnimatePresence>
+        <Headline>{`${label}…`}</Headline>
       </div>
 
       <Composer

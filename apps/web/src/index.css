@@ -167,7 +167,30 @@ body {
   animation: pop-out 120ms ease-in;
 }
 
+/* Theme switch: the new theme grows out of the toggle as a circle (see ui/theme.tsx). Turn off the
+   browser's default cross-fade so only that animation runs. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Loading placeholders: a soft highlight sweeps across instead of a plain pulse. */
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(100deg, var(--wash) 30%, color-mix(in srgb, var(--wash) 50%, var(--surface)) 50%, var(--wash) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
   .dialog-overlay,
   .dialog-content,
   .popover-content {

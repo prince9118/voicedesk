@@ -88,7 +88,12 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
         <AsciiField anchorRef={core} levels={levels} />
       </div>
 
-      <header className="fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-between px-4 sm:px-6">
+      <motion.header
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed inset-x-0 top-0 z-20 flex h-16 items-center justify-between px-4 sm:px-6"
+      >
         <div className="flex items-center gap-2">
           <Logo size={24} />
           <span className="hidden text-sm font-medium tracking-tight sm:inline">VoiceDesk</span>
@@ -145,7 +150,7 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
           <ThemeToggle />
           <AccountMenu user={user} onSignOut={onSignOut} />
         </div>
-      </header>
+      </motion.header>
 
       <main className="relative z-10 grid min-h-svh place-items-center px-4 py-24">
         <div ref={core} className="relative w-full max-w-[640px]">
@@ -207,7 +212,10 @@ function IdleView({
       <div className="mb-8">
         <Headline>{busy ? "connecting…" : "what’s on your mind?"}</Headline>
       </div>
-      <Composer value={draft} onChange={setDraft} onSubmit={onSend} busy={busy} placeholder="Ask VoiceDesk anything…" tools={tools} autoFocus />
+      {/* Rises into place just after the headline starts decoding. */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}>
+        <Composer value={draft} onChange={setDraft} onSubmit={onSend} busy={busy} placeholder="Ask VoiceDesk anything…" tools={tools} autoFocus />
+      </motion.div>
     </>
   );
 }
