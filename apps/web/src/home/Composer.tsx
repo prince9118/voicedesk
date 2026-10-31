@@ -40,7 +40,7 @@ export function Composer({
         event.preventDefault();
         if (canSend) onSubmit();
       }}
-      className="glass-panel rounded-2xl px-4 pt-3.5 pb-3 transition-[box-shadow,border-color] duration-300 focus-within:border-accent/50 focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_14%,transparent),0_14px_36px_-18px_rgb(0_0_0/0.22)]"
+      className={`glass-panel rounded-2xl px-4 pt-3.5 pb-3 transition-[box-shadow,border-color] duration-300 focus-within:border-accent/50 focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_14%,transparent),0_14px_36px_-18px_rgb(0_0_0/0.22)] ${busy ? "composer-busy" : ""}`}
     >
       <label className="sr-only" htmlFor="composer-input">
         {placeholder}
@@ -69,7 +69,7 @@ export function Composer({
             type="submit"
             disabled={!canSend}
             aria-label="Send"
-            className="group/send grid size-9 place-items-center overflow-hidden rounded-lg bg-wash text-muted transition-[background-color,color,transform] enabled:bg-fg enabled:text-canvas enabled:hover:bg-fg/85 enabled:active:scale-90 disabled:opacity-70"
+            className={`group/send ${canSend ? "send-ready" : ""} grid size-9 place-items-center overflow-hidden rounded-lg bg-wash text-muted transition-[background-color,color,transform] enabled:bg-fg enabled:text-canvas enabled:hover:bg-fg/85 enabled:active:scale-90 disabled:opacity-70`}
           >
             {busy ? <Spinner /> : <ArrowUpRight size={17} strokeWidth={1.8} className="transition-transform duration-200 group-enabled/send:group-hover/send:translate-x-px group-enabled/send:group-hover/send:-translate-y-px" />}
           </button>

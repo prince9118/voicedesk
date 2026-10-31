@@ -187,9 +187,76 @@ body {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* Menu items cascade in after the menu opens. */
+@keyframes item-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+.popover-content[data-state="open"] [role="menuitem"] {
+  animation: item-in 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.popover-content[data-state="open"] [role="menuitem"]:nth-child(2) {
+  animation-delay: 45ms;
+}
+.popover-content[data-state="open"] [role="menuitem"]:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+/* The send button springs in when there is something to send. */
+@keyframes send-pop {
+  50% {
+    transform: scale(1.14);
+  }
+}
+.send-ready {
+  animation: send-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* While the assistant connects or thinks, the composer's glow breathes. */
+@keyframes breathe {
+  50% {
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent),
+      0 14px 36px -18px rgb(0 0 0 / 0.22);
+  }
+}
+.composer-busy {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+/* Logo bars dance on hover. */
+@keyframes bar-wave {
+  50% {
+    transform: scaleY(1.35);
+  }
+}
+.logo-bar {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.logo:hover .logo-bar {
+  animation: bar-wave 600ms ease-in-out infinite;
+}
+.logo:hover .logo-bar:nth-of-type(2) {
+  animation-delay: 80ms;
+}
+.logo:hover .logo-bar:nth-of-type(3) {
+  animation-delay: 160ms;
+}
+.logo:hover .logo-bar:nth-of-type(4) {
+  animation-delay: 240ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .shimmer {
-    animation: none;
+  .shimmer,
+  .send-ready,
+  .composer-busy,
+  .logo:hover .logo-bar,
+  .popover-content [role="menuitem"] {
+    animation: none !important;
   }
   .dialog-overlay,
   .dialog-content,
