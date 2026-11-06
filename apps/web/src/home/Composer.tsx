@@ -1,7 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import type { ButtonHTMLAttributes, KeyboardEvent, ReactNode, Ref } from "react";
 import { Spinner } from "../ui/primitives";
-import { ScrambleText } from "../ui/scramble";
 
 // The frosted message box: a growing textarea, tools on the left, key hints and send on the right.
 // Enter sends, Shift+Enter adds a line. Purely presentational: callers decide what "send" means.
@@ -118,7 +117,7 @@ export function ToolButton({
 export function Headline({ children }: { children: string }) {
   return (
     <h1 className="text-center text-[2.6rem] leading-[1.05] font-extralight tracking-[-0.035em] text-fg sm:text-6xl">
-      <ScrambleText text={children} />
+      {children}
     </h1>
   );
 }

@@ -7,7 +7,7 @@ import { FilterTabs, FILTERS, NewTicketDialog, type TicketFilter, TicketList } f
 import { Logo } from "../ui/icons";
 import { Button, ErrorBanner, fadeUp } from "../ui/primitives";
 import { ThemeToggle } from "../ui/theme";
-import { AsciiField, type VoiceLevels } from "./AsciiField";
+import { Aquarium, type VoiceLevels } from "./Aquarium";
 import { Composer, Headline, ToolButton } from "./Composer";
 import { PENDING_QUESTION_KEY } from "./pending-question";
 // LiveKit's WebRTC client is most of the bundle; load it only when a conversation starts.
@@ -85,7 +85,7 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
   return (
     <motion.div {...fadeUp} className="relative min-h-svh overflow-hidden">
       <div className="fixed inset-0">
-        <AsciiField anchorRef={core} levels={levels} />
+        <Aquarium anchorRef={core} levels={levels} />
       </div>
 
       <motion.header
@@ -182,7 +182,7 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
               }
             />
           )}
-          {/* Absolutely placed so an error never shifts the composer (or the hands aimed at it). */}
+          {/* Absolutely placed so an error never shifts the composer (or the fish around it). */}
           <div className="absolute inset-x-0 top-full mt-4">
             <ErrorBanner message={error} />
           </div>

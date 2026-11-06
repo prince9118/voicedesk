@@ -103,7 +103,12 @@ body {
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
-/* Frosted panels that float over the ASCII backdrop (composer, History pill, transcript).
+/* A soft grey halo behind the headline and composer, fading out to the clean page. */
+.aquarium-glow {
+  background: radial-gradient(ellipse 42% 30% at 50% 50%, color-mix(in srgb, var(--fg) 7%, transparent), transparent 72%);
+}
+
+/* Frosted panels that float over the backdrop (composer, History pill, transcript).
    In the components layer so a utility (e.g. a more opaque background) can adjust one panel. */
 @layer components {
   .glass-panel {
