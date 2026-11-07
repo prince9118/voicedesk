@@ -104,8 +104,8 @@ body {
 }
 
 /* A soft grey halo behind the headline and composer, fading out to the clean page. */
-.aquarium-glow {
-  background: radial-gradient(ellipse 42% 30% at 50% 50%, color-mix(in srgb, var(--fg) 7%, transparent), transparent 72%);
+.page-glow {
+  background: radial-gradient(ellipse 46% 34% at 50% 50%, color-mix(in srgb, var(--fg) 9%, transparent), transparent 74%);
 }
 
 /* Frosted panels that float over the backdrop (composer, History pill, transcript).

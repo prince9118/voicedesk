@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { User } from "../api/client";
 import { AuthDialog, type AuthMode } from "../auth/AuthDialog";
-import { Aquarium } from "../home/Aquarium";
 import { Composer, Headline, ToolButton } from "../home/Composer";
 import { rememberPendingQuestion } from "../home/pending-question";
 import { Logo } from "../ui/icons";
@@ -72,9 +71,9 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
       </motion.header>
 
       <main id="top">
-        {/* Hero: koi swim around the question box. */}
+        {/* Hero: a soft glow sits behind the question box. */}
         <section className="relative grid min-h-[100svh] place-items-center overflow-hidden px-4 py-28">
-          <Aquarium anchorRef={hero} />
+          <div aria-hidden className="page-glow pointer-events-none absolute inset-0" />
           <div ref={hero} className="relative z-10 w-full max-w-[640px]">
             <motion.div {...reveal} className="mb-8">
               <Headline>support that listens.</Headline>

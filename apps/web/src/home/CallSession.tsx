@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import type { VoiceSession } from "../api/client";
 import { STATE_LABEL, VoiceBars } from "../voice/VoiceBars";
-import type { VoiceLevels } from "./Aquarium";
+import type { VoiceLevels } from "./voice-levels";
 import { Composer, Headline, ToolButton } from "./Composer";
 
 // Typed messages reach the agent on LiveKit Agents' chat topic; it answers by voice, with a transcript.
