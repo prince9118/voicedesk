@@ -3,6 +3,7 @@ import { BookOpen, Inbox, Mic, MessageSquareText, PhoneOff, Plus, TicketPlus } f
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { User } from "../api/client";
+import { Aquarium } from "../home/Aquarium";
 import { AuthDialog, type AuthMode } from "../auth/AuthDialog";
 import { Composer, Headline, ToolButton } from "../home/Composer";
 import { rememberPendingQuestion } from "../home/pending-question";
@@ -73,7 +74,7 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
       <main id="top">
         {/* Hero: a soft glow sits behind the question box. */}
         <section className="relative grid min-h-[100svh] place-items-center overflow-hidden px-4 py-28">
-          <div aria-hidden className="page-glow pointer-events-none absolute inset-0" />
+          <Aquarium anchorRef={hero} />
           <div ref={hero} className="relative z-10 w-full max-w-[640px]">
             <motion.div {...reveal} className="mb-8">
               <Headline>support that listens.</Headline>

@@ -7,6 +7,7 @@ import { FilterTabs, FILTERS, NewTicketDialog, type TicketFilter, TicketList } f
 import { Logo } from "../ui/icons";
 import { Button, ErrorBanner, fadeUp } from "../ui/primitives";
 import { ThemeToggle } from "../ui/theme";
+import { Aquarium } from "./Aquarium";
 import type { VoiceLevels } from "./voice-levels";
 import { Composer, Headline, ToolButton } from "./Composer";
 import { PENDING_QUESTION_KEY } from "./pending-question";
@@ -85,7 +86,7 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
   return (
     <motion.div {...fadeUp} className="relative min-h-svh overflow-hidden">
       <div className="fixed inset-0">
-        <div aria-hidden className="page-glow pointer-events-none absolute inset-0" />
+        <Aquarium anchorRef={core} levels={levels} />
       </div>
 
       <motion.header
