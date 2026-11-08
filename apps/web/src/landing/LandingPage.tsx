@@ -1,5 +1,5 @@
 import type { AgentState } from "@livekit/components-react";
-import { BookOpen, Inbox, Mic, MessageSquareText, PhoneOff, Plus, TicketPlus } from "lucide-react";
+import { BookOpen, ChevronDown, Clock, Inbox, Mic, MessageSquareText, PhoneOff, Plus, ShieldCheck, TicketPlus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { User } from "../api/client";
@@ -21,6 +21,21 @@ const reveal = {
   viewport: { once: true, margin: "-60px" },
   transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
 } as const;
+
+const SUGGESTIONS = ["What's the status of ticket 1042?", "How long do refunds take?", "My invoice was charged twice"];
+
+const TRUST = [
+  { icon: Clock, text: "Answers instantly, 24/7" },
+  { icon: ShieldCheck, text: "Sees only your tickets" },
+  { icon: Mic, text: "Mic only when you ask" },
+];
+
+const FAQ = [
+  { q: "Do I have to use my voice?", a: "No. Type your question in the box, or tap the microphone to talk. You can switch between the two at any time." },
+  { q: "Are my calls recorded?", a: "No. Calls are not recorded, and your browser asks for microphone access only when you start a voice call." },
+  { q: "What can the assistant see?", a: "Only your own tickets and our public help articles. It cannot look at anyone else's account." },
+  { q: "What if it doesn't know the answer?", a: "It says so, rather than guessing, and offers to open a ticket so a person can follow up." },
+];
 
 export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User) => void }) {
   const [dialog, setDialog] = useState<{ open: boolean; mode: AuthMode }>({ open: false, mode: "login" });
@@ -53,6 +68,7 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
               ["#features", "Features"],
               ["#how-it-works", "How it works"],
               ["#benefits", "Why voice"],
+              ["#faq", "FAQ"],
             ].map(([href, label]) => (
               <a key={href} href={href} className="rounded-lg px-2.5 py-1 transition-colors hover:bg-wash hover:text-fg">
                 {label}
@@ -99,6 +115,27 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
                   </>
                 }
               />
+              {/* One tap fills the composer, so a first-time visitor never faces a blank box. */}
+              <ul className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Example questions">
+                {SUGGESTIONS.map((text) => (
+                  <li key={text}>
+                    <button
+                      type="button"
+                      onClick={() => setQuestion(text)}
+                      className="rounded-full border border-line bg-subtle px-3 py-1 text-[13px] text-muted transition-colors hover:border-line-strong hover:bg-wash hover:text-fg"
+                    >
+                      {text}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-faint">
+                {TRUST.map(({ icon: Icon, text }) => (
+                  <span key={text} className="inline-flex items-center gap-1.5">
+                    <Icon size={13} /> {text}
+                  </span>
+                ))}
+              </p>
             </motion.div>
           </div>
         </section>
@@ -147,9 +184,24 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
           </dl>
         </Section>
 
+        {/* FAQ: native <details>, so it is keyboard- and screen-reader-accessible with no extra code. */}
+        <Section id="faq" eyebrow="FAQ" title="Questions people ask first.">
+          <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {FAQ.map(({ q, a }) => (
+              <motion.details key={q} {...reveal} className="group px-6 py-4 sm:px-8">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+                  {q}
+                  <ChevronDown size={16} className="shrink-0 text-muted transition-transform duration-300 group-open:rotate-180" />
+                </summary>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{a}</p>
+              </motion.details>
+            ))}
+          </div>
+        </Section>
+
         {/* Final call to action */}
         <section className="mx-auto max-w-6xl px-4 pt-8 pb-24 sm:px-6">
-          <motion.div {...reveal} className="flex flex-col items-start justify-between gap-6 rounded-xl bg-fg px-8 py-10 text-canvas sm:flex-row dark:border dark:border-line dark:bg-surface dark:text-fg dark:border dark:border-line dark:bg-surface dark:text-fg sm:items-center sm:px-10">
+          <motion.div {...reveal} className="flex flex-col items-start justify-between gap-6 rounded-xl bg-fg px-8 py-10 text-canvas sm:flex-row dark:border dark:border-line dark:bg-surface dark:text-fg sm:items-center sm:px-10">
             <div>
               <h2 className="text-4xl font-extralight tracking-[-0.03em]">Ready to talk?</h2>
               <p className="mt-2 opacity-70">Create an account and start your first call in under a minute.</p>
@@ -163,11 +215,28 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:px-6">
-          <span className="flex items-center gap-2 font-medium text-fg">
-            <Logo size={20} /> VoiceDesk
-          </span>
-          <span>Voice-first customer support.</span>
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted sm:flex-row sm:px-6">
+          <div className="flex flex-col items-center gap-1 sm:items-start">
+            <span className="flex items-center gap-2 font-medium text-fg">
+              <Logo size={20} /> VoiceDesk
+            </span>
+            <span>Voice-first customer support.</span>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+            {[
+              ["#features", "Features"],
+              ["#how-it-works", "How it works"],
+              ["#benefits", "Why voice"],
+              ["#faq", "FAQ"],
+            ].map(([href, label]) => (
+              <a key={href} href={href} className="transition-colors hover:text-fg">
+                {label}
+              </a>
+            ))}
+            <a href="#top" className="transition-colors hover:text-fg">
+              Back to top ↑
+            </a>
+          </nav>
         </div>
       </footer>
 
