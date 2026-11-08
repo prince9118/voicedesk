@@ -1,6 +1,7 @@
 // Applies the saved (or OS) theme before the first paint, so dark-mode users never see a flash of
 // the light theme. A separate file rather than an inline <script>, so the Content-Security-Policy can
 // allow scripts from our own origin only. Keep the key in sync with src/ui/theme.tsx.
+// Preference is "light", "dark" or "system" (default: follow the OS).
 (function () {
   var theme = "dark";
   try {
