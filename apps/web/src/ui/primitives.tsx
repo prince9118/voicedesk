@@ -20,11 +20,11 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const BUTTON_VARIANTS = {
-  primary: "bg-fg text-canvas hover:bg-fg/85",
-  accent: "bg-accent text-white hover:bg-accent/90",
-  secondary: "border border-line-strong bg-surface text-fg shadow-xs hover:bg-wash",
-  ghost: "text-muted hover:bg-wash hover:text-fg",
-  danger: "bg-danger text-white hover:bg-danger/90",
+  primary: "border-2 border-ink bg-fg text-canvas shadow-sm",
+  accent: "border-2 border-ink bg-accent text-black shadow-sm",
+  secondary: "border-2 border-ink bg-surface text-fg shadow-sm hover:bg-wash",
+  ghost: "border-2 border-transparent text-fg hover:border-ink hover:bg-wash",
+  danger: "border-2 border-ink bg-danger text-black shadow-sm",
 };
 const BUTTON_SIZES = {
   sm: "h-8 gap-1.5 px-3 text-[13px]",
@@ -38,7 +38,7 @@ export function Button({ variant = "primary", size = "md", busy = false, disable
     <button
       type={type}
       disabled={disabled || busy}
-      className={`inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-[background-color,color,transform,box-shadow] duration-150 select-none enabled:hover:-translate-y-px enabled:active:translate-y-0 enabled:active:scale-[0.97] motion-reduce:transform-none disabled:pointer-events-none disabled:opacity-50 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center font-bold whitespace-nowrap transition-[background-color,color,transform,box-shadow] duration-100 select-none enabled:hover:-translate-x-0.5 enabled:hover:-translate-y-0.5 enabled:hover:shadow-md enabled:active:translate-x-0.5 enabled:active:translate-y-0.5 enabled:active:shadow-none motion-reduce:transform-none disabled:pointer-events-none disabled:opacity-50 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${className}`}
       {...rest}
     >
       {busy && <Spinner />}
@@ -52,12 +52,12 @@ export function Spinner() {
 }
 
 const CONTROL =
-  "w-full rounded-lg border border-line-strong bg-surface px-3 text-sm text-fg shadow-xs transition-[border-color,box-shadow] placeholder:text-faint focus:border-accent focus:ring-3 focus:ring-accent/20 focus-visible:outline-none";
+  "w-full border-2 border-ink bg-surface px-3 text-sm font-medium text-fg shadow-sm transition-[box-shadow,transform] placeholder:text-faint focus:-translate-x-0.5 focus:-translate-y-0.5 focus:shadow-[5px_5px_0_0_var(--accent)] focus-visible:outline-none";
 
 function FieldLabel({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="flex items-baseline justify-between text-[13px] font-medium">
+      <span className="flex items-baseline justify-between text-[13px] font-bold uppercase tracking-wide">
         {label}
         {hint && <span className="text-xs font-normal text-faint">{hint}</span>}
       </span>
@@ -88,7 +88,7 @@ export function ErrorBanner({ message }: { message: string | null }) {
     <AnimatePresence>
       {message && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-          <p role="alert" className="flex gap-2.5 rounded-lg border border-danger/25 bg-danger-soft px-3 py-2.5 text-sm text-danger-text">
+          <p role="alert" className="flex gap-2.5 border-2 border-ink bg-danger-soft font-medium shadow-sm px-3 py-2.5 text-sm text-danger-text">
             <CircleAlert aria-hidden size={16} className="mt-0.5 shrink-0" />
             {message}
           </p>
@@ -99,7 +99,7 @@ export function ErrorBanner({ message }: { message: string | null }) {
 }
 
 export function Card({ children, className = "" }: { children?: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-line bg-surface shadow-xs ${className}`}>{children}</div>;
+  return <div className={`border-2 border-ink bg-surface shadow-md ${className}`}>{children}</div>;
 }
 
 // Hover/focus label for icon-only buttons. Needs <Tooltip.Provider> near the root (see App).
@@ -108,7 +108,7 @@ export function Tip({ label, children }: { label: string; children: ReactElement
     <Tooltip.Root>
       <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content sideOffset={6} className="popover-content z-50 rounded-md bg-fg px-2 py-1 text-xs font-medium text-canvas">
+        <Tooltip.Content sideOffset={6} className="popover-content z-50 border-2 border-ink bg-accent px-2 py-1 text-xs font-bold text-black shadow-xs">
           {label}
         </Tooltip.Content>
       </Tooltip.Portal>

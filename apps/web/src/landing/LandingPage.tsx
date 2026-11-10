@@ -63,14 +63,14 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
             <Logo size={24} />
             <span className="text-sm font-medium tracking-tight">VoiceDesk</span>
           </a>
-          <nav className="glass-panel absolute left-1/2 hidden h-9 -translate-x-1/2 items-center gap-1 rounded-xl px-1.5 text-[13px] font-light text-muted md:flex" aria-label="Sections">
+          <nav className="glass-panel absolute left-1/2 hidden h-9 -translate-x-1/2 items-center gap-1 rounded-xl px-1.5 text-[13px] font-bold text-muted md:flex" aria-label="Sections">
             {[
               ["#features", "Features"],
               ["#how-it-works", "How it works"],
               ["#benefits", "Why voice"],
               ["#faq", "FAQ"],
             ].map(([href, label]) => (
-              <a key={href} href={href} className="rounded-lg px-2.5 py-1 transition-colors hover:bg-wash hover:text-fg">
+              <a key={href} href={href} className="rounded-lg px-2.5 py-1 transition-colors hover:bg-warning hover:text-black font-bold">
                 {label}
               </a>
             ))}
@@ -94,7 +94,7 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
           <div ref={hero} className="relative z-10 w-full max-w-[640px]">
             <motion.div {...reveal} className="mb-8">
               <Headline>support that listens.</Headline>
-              <p className="mx-auto mt-4 max-w-md text-center text-[15px] font-light text-muted">
+              <p className="mx-auto mt-4 max-w-md text-center text-[15px] font-bold text-muted">
                 Talk or type to an assistant that checks your tickets, opens new ones, and answers from the help center.
               </p>
             </motion.div>
@@ -201,12 +201,12 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
 
         {/* Final call to action */}
         <section className="mx-auto max-w-6xl px-4 pt-8 pb-24 sm:px-6">
-          <motion.div {...reveal} className="flex flex-col items-start justify-between gap-6 rounded-xl bg-fg px-8 py-10 text-canvas sm:flex-row dark:border dark:border-line dark:bg-surface dark:text-fg sm:items-center sm:px-10">
+          <motion.div {...reveal} className="flex flex-col items-start justify-between gap-6 border-2 border-ink bg-accent px-8 py-10 text-black shadow-2xl sm:flex-row sm:items-center sm:px-10">
             <div>
-              <h2 className="text-4xl font-extralight tracking-[-0.03em]">Ready to talk?</h2>
+              <h2 className="text-4xl font-bold tracking-[-0.03em]">Ready to talk?</h2>
               <p className="mt-2 opacity-70">Create an account and start your first call in under a minute.</p>
             </div>
-            <Button size="lg" variant="accent" onClick={() => openDialog("register")}>
+            <Button size="lg" variant="primary" onClick={() => openDialog("register")}>
               <Mic size={16} />
               Get started
             </Button>
@@ -259,7 +259,7 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
     <section id={id} className="mx-auto max-w-6xl scroll-mt-16 px-4 py-16 sm:px-6 lg:py-20">
       <motion.div {...reveal} className="mb-10 max-w-2xl">
         <p className="text-sm font-medium text-accent-text">{eyebrow}</p>
-        <h2 className="mt-2 text-4xl leading-tight font-extralight tracking-[-0.03em] sm:text-[2.75rem]">{title}</h2>
+        <h2 className="mt-2 text-4xl leading-tight font-bold tracking-[-0.03em] sm:text-[2.75rem]">{title}</h2>
       </motion.div>
       {children}
     </section>
@@ -302,7 +302,7 @@ function Benefit({ stat, label, text }: { stat: string; label: string; text: str
   return (
     <motion.div {...reveal} className="bg-surface p-6 sm:p-8">
       <dt>
-        <span className="text-4xl font-extralight tracking-[-0.03em]">{stat}</span>
+        <span className="text-4xl font-bold tracking-[-0.03em]">{stat}</span>
         <span className="ml-2 text-sm text-muted">{label}</span>
       </dt>
       <dd className="mt-3 text-sm leading-relaxed text-muted">{text}</dd>
@@ -354,7 +354,7 @@ function DemoCall() {
     .slice(-2);
 
   return (
-    <div className="mx-auto max-w-md overflow-hidden rounded-xl border border-line bg-surface shadow-[0_24px_60px_-28px_rgb(0_0_0/0.35)]" aria-hidden>
+    <div className="mx-auto max-w-md overflow-hidden rounded-xl border border-line bg-surface shadow-2xl" aria-hidden>
       <div className="flex h-11 items-center justify-between border-b border-line px-4 text-[13px]">
         <span className="flex items-center gap-2 font-medium">
           <span className="size-1.5 rounded-full bg-danger" />

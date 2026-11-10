@@ -6,12 +6,28 @@
 @theme {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Neo-brutalism: square corners (rounded-full stays for dots and pills) and hard, blur-free shadows. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --shadow-xs: 2px 2px 0 0 var(--ink);
+  --shadow-sm: 3px 3px 0 0 var(--ink);
+  --shadow-md: 4px 4px 0 0 var(--ink);
+  --shadow-lg: 5px 5px 0 0 var(--ink);
+  --shadow-xl: 6px 6px 0 0 var(--ink);
+  --shadow-2xl: 8px 8px 0 0 var(--ink);
 }
 
 /* Semantic tokens: Tailwind utilities (bg-canvas, text-fg, border-line, …) point at CSS variables,
    so switching the theme is one attribute change and every component follows.
    Values follow the Radix Colors scales: warm "sand" neutrals, one orange accent, and status hues. */
 @theme inline {
+  --color-ink: var(--ink);
   --color-canvas: var(--canvas);
   --color-subtle: var(--subtle);
   --color-surface: var(--surface);
@@ -37,51 +53,53 @@
 
 :root,
 [data-theme="light"] {
-  --canvas: #fdfdfc;
-  --subtle: #f9f9f8;
+  --ink: #000000;
+  --canvas: #fff8e7;
+  --subtle: #fff1cf;
   --surface: #ffffff;
-  --wash: #f1f0ef;
-  --line: #e2e1de;
-  --line-strong: #cfceca;
-  --fg: #21201c;
-  --muted: #63635e;
-  --faint: #8d8d86;
-  --accent: #f76b15;
-  --accent-text: #cc4e00;
-  --accent-soft: #ffefd6;
-  --danger: #e5484d;
-  --danger-text: #ce2c31;
-  --danger-soft: #feebec;
-  --success: #30a46c;
-  --success-text: #218358;
-  --info: #0090ff;
-  --warning: #ffc53d;
-  --warning-text: #ab6400;
-  --warning-soft: #fff7c2;
+  --wash: #ffe9a8;
+  --line: #000000;
+  --line-strong: #000000;
+  --fg: #000000;
+  --muted: #3d3a33;
+  --faint: #6b665a;
+  --accent: #ff6b1a;
+  --accent-text: #b83d00;
+  --accent-soft: #ffd9b8;
+  --danger: #ff4d4d;
+  --danger-text: #a50f0f;
+  --danger-soft: #ffd1d1;
+  --success: #2bd47d;
+  --success-text: #0a6b3a;
+  --info: #3d8bff;
+  --warning: #ffd23f;
+  --warning-text: #7a4a00;
+  --warning-soft: #fff3a8;
 }
 
 [data-theme="dark"] {
-  --canvas: #111110;
-  --subtle: #161615;
-  --surface: #191918;
-  --wash: #222221;
-  --line: #2a2a28;
-  --line-strong: #3b3a37;
-  --fg: #eeeeec;
-  --muted: #b5b3ad;
-  --faint: #7c7b74;
-  --accent: #f76b15;
-  --accent-text: #ff801f;
-  --accent-soft: #331e0b;
-  --danger: #e5484d;
-  --danger-text: #ff9592;
-  --danger-soft: #3b1219;
-  --success: #30a46c;
-  --success-text: #3dd68c;
-  --info: #3b9eff;
-  --warning: #ffc53d;
-  --warning-text: #ffca16;
-  --warning-soft: #302008;
+  --ink: #f5f1e6;
+  --canvas: #14130f;
+  --subtle: #1b1a15;
+  --surface: #1f1e18;
+  --wash: #35321f;
+  --line: #f5f1e6;
+  --line-strong: #f5f1e6;
+  --fg: #f5f1e6;
+  --muted: #c9c4b3;
+  --faint: #8f8a78;
+  --accent: #ff7a2e;
+  --accent-text: #ff9a5c;
+  --accent-soft: #4a2a10;
+  --danger: #ff5c5c;
+  --danger-text: #ff9a9a;
+  --danger-soft: #4a1717;
+  --success: #34e08a;
+  --success-text: #5eeaa3;
+  --info: #5aa2ff;
+  --warning: #ffd23f;
+  --warning-text: #ffd23f;
+  --warning-soft: #3d330c;
 }
 
 html,
@@ -108,19 +126,24 @@ body {
   background: radial-gradient(ellipse 46% 34% at 50% 50%, color-mix(in srgb, var(--fg) 9%, transparent), transparent 74%);
 }
 
-/* Frosted panels that float over the backdrop (composer, History pill, transcript).
+/* Solid panels with a hard shadow that sit over the backdrop (composer, History pill, transcript).
    In the components layer so a utility (e.g. a more opaque background) can adjust one panel. */
 @layer components {
   .glass-panel {
-    background: color-mix(in srgb, var(--surface) 74%, transparent);
-    border: 1px solid var(--line);
-    box-shadow:
-      0 1px 2px rgb(0 0 0 / 0.04),
-      0 14px 36px -18px rgb(0 0 0 / 0.22);
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    box-shadow: 4px 4px 0 0 var(--ink);
   }
 }
+
+/* Neo-brutalism: borders are thick and black. Unlayered, so these win over Tailwind's 1px utilities. */
+.border { border-width: 2px; }
+.border-t { border-top-width: 2px; }
+.border-b { border-bottom-width: 2px; }
+.divide-y > :not(:last-child) { border-bottom-width: 2px; }
+h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; }
+.page-glow { display: none; }
+::selection { background: var(--accent); color: #000; }
 
 /* Visible keyboard focus everywhere. In the base layer, so a component's own focus style
    (inputs draw a ring, the composer's textarea relies on its frame) can override it. */
@@ -222,13 +245,10 @@ body {
 /* While the assistant connects or thinks, the composer's glow breathes. */
 @keyframes breathe {
   50% {
-    box-shadow:
-      0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent),
-      0 14px 36px -18px rgb(0 0 0 / 0.22);
+    box-shadow: 8px 8px 0 0 var(--accent);
   }
 }
 .composer-busy {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   animation: breathe 1.8s ease-in-out infinite;
 }
 

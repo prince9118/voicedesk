@@ -22,14 +22,14 @@ export function DialogContent({
 }) {
   return (
     <Dialog.Portal>
-      <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/40 dark:bg-black/65" />
+      <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-black/60" />
       <Dialog.Content
         // Without a description, tell Radix so explicitly (it warns otherwise).
         {...(description ? {} : { "aria-describedby": undefined })}
-        className={`dialog-content fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-line bg-surface p-6 shadow-2xl focus-visible:outline-none ${className}`}
+        className={`dialog-content fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto border-2 border-ink bg-surface p-6 shadow-2xl focus-visible:outline-none ${className}`}
       >
         <div className="mb-5 pr-8">
-          <Dialog.Title className="text-lg font-semibold tracking-tight">{title}</Dialog.Title>
+          <Dialog.Title className="text-xl font-extrabold tracking-tight">{title}</Dialog.Title>
           {description && <Dialog.Description className="mt-1 text-sm text-muted">{description}</Dialog.Description>}
         </div>
         {children}

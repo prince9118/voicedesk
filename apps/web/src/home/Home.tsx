@@ -117,7 +117,7 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
                 align="center"
                 sideOffset={8}
                 collisionPadding={16}
-                className="popover-content z-40 w-[min(480px,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line bg-surface shadow-xl"
+                className="popover-content z-40 w-[min(480px,calc(100vw-2rem))] overflow-hidden border-2 border-ink bg-surface shadow-xl"
               >
                 <div className="flex h-14 items-center justify-between gap-3 px-5">
                   <h2 className="text-sm font-medium">Your tickets</h2>
@@ -221,8 +221,8 @@ function IdleView({
   );
 }
 
-const MENU_ITEM = "flex cursor-default items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-fg outline-none select-none data-highlighted:bg-wash";
-const MENU = "popover-content z-50 min-w-52 rounded-lg border border-line bg-surface p-1 shadow-lg";
+const MENU_ITEM = "flex cursor-default items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-fg outline-none select-none data-highlighted:bg-accent data-highlighted:font-bold";
+const MENU = "popover-content z-50 min-w-52 border-2 border-ink bg-surface p-1 shadow-lg";
 
 function PlusMenu({ onNewTicket, onHistory }: { onNewTicket: () => void; onHistory: () => void }) {
   // The items open other overlays; don't pull focus back to the "+" button and close them again.
@@ -263,7 +263,7 @@ function AccountMenu({ user, onSignOut }: { user: User; onSignOut: () => void })
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         aria-label="Account"
-        className="grid size-9 place-items-center rounded-lg bg-wash text-[13px] font-medium text-fg transition-colors hover:bg-line data-[state=open]:bg-line"
+        className="grid size-9 place-items-center rounded-lg border-2 border-ink bg-warning text-[13px] font-bold text-black shadow-xs transition-colors hover:bg-accent data-[state=open]:bg-accent"
       >
         {user.name.trim().charAt(0).toUpperCase() || "?"}
       </DropdownMenu.Trigger>
