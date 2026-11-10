@@ -107,7 +107,7 @@ export function Home({ user, onSignOut }: { user: User; onSignOut: () => void })
               if (open) void refresh();
             }}
           >
-            <Popover.Trigger className="glass-panel group flex h-9 items-center gap-2 rounded-xl px-3.5 text-[13px] font-light text-muted transition-colors hover:text-fg data-[state=open]:text-fg">
+            <Popover.Trigger className="glass-panel group flex h-9 items-center gap-2 rounded-xl px-3.5 text-[13px] font-medium text-muted transition-colors hover:text-fg data-[state=open]:text-fg">
               <History size={15} strokeWidth={1.7} />
               History
               <ChevronDown size={14} strokeWidth={1.7} className="transition-transform group-data-[state=open]:rotate-180" />

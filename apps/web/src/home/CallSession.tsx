@@ -155,7 +155,7 @@ function InCall({ firstMessage, levels, tools, onEnd, onActivity }: Omit<CallSes
                   {line.mine ? (
                     <span className="max-w-[85%] rounded-2xl rounded-br-md bg-wash px-3.5 py-2 text-sm">{line.text}</span>
                   ) : (
-                    <p className="max-w-[94%] text-[15px] leading-relaxed font-light">{line.text}</p>
+                    <p className="max-w-[94%] text-[15px] leading-relaxed font-medium">{line.text}</p>
                   )}
                 </motion.li>
               ))}

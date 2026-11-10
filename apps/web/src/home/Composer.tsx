@@ -54,7 +54,7 @@ export function Composer({
         autoFocus={autoFocus}
         rows={1}
         maxLength={2000}
-        className="field-sizing-content block max-h-48 min-h-7 w-full resize-none bg-transparent text-[15px] leading-relaxed font-light text-fg placeholder:text-faint focus-visible:outline-none"
+        className="field-sizing-content block max-h-48 min-h-7 w-full resize-none bg-transparent text-[15px] leading-relaxed font-medium text-fg placeholder:text-faint focus-visible:outline-none"
       />
       <div className="mt-3 flex items-center gap-1">
         {tools}
@@ -116,7 +116,7 @@ export function ToolButton({
 // The big, thin headline over the art ("what's on your mind?").
 export function Headline({ children }: { children: string }) {
   return (
-    <h1 className="text-center text-[2.6rem] leading-[1.05] font-extralight tracking-[-0.035em] text-fg sm:text-6xl">
+    <h1 className="text-center text-[2.6rem] leading-[1.05] font-black tracking-[-0.035em] text-fg sm:text-6xl">
       {children}
     </h1>
   );
