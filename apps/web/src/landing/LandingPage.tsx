@@ -270,12 +270,12 @@ function Feature({ tone, icon, title, example, children }: { tone: string; icon:
   return (
     <motion.div
       {...reveal}
-      className={`group flex flex-col border-2 border-ink p-6 text-black shadow-lg transition-[transform,box-shadow] duration-150 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-2xl sm:p-8 ${tone}`}
+      className={`group flex flex-col border-2 border-black p-6 text-black shadow-[5px_5px_0_0_var(--ink)] transition-[transform,box-shadow] duration-150 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-2xl sm:p-8 ${tone}`}
     >
-      <span className="grid size-11 place-items-center border-2 border-ink bg-white shadow-xs transition-transform duration-300 group-hover:-rotate-6">{icon}</span>
+      <span className="grid size-11 place-items-center border-2 border-black bg-white shadow-[2px_2px_0_0_#000] transition-transform duration-300 group-hover:-rotate-6">{icon}</span>
       <h3 className="mt-5 text-lg font-extrabold tracking-tight">{title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed font-medium text-black/75">{children}</p>
-      <p className="mt-5 self-start border-2 border-ink bg-white px-3 py-1 text-[13px] font-medium">
+      <p className="mt-5 self-start border-2 border-black bg-white px-3 py-1 text-[13px] font-medium">
         <span className="font-bold">You: </span>“{example}”
       </p>
     </motion.div>
@@ -300,7 +300,7 @@ function Step({ n, title, text }: { n: number; title: string; text: string }) {
 
 function Benefit({ tone, stat, label, text }: { tone: string; stat: string; label: string; text: string }) {
   return (
-    <motion.div {...reveal} className={`border-2 border-ink p-6 text-black shadow-lg sm:p-8 ${tone}`}>
+    <motion.div {...reveal} className={`border-2 border-black p-6 text-black shadow-[5px_5px_0_0_var(--ink)] sm:p-8 ${tone}`}>
       <dt>
         <span className="text-4xl font-black tracking-[-0.03em]">{stat}</span>
         <span className="ml-2 text-sm font-bold text-black/70">{label}</span>
