@@ -113,11 +113,14 @@ export function ToolButton({
   );
 }
 
-// The big, thin headline over the art ("what's on your mind?").
+// The big headline over the art. The last word sits on a tilted colour block.
 export function Headline({ children }: { children: string }) {
+  const words = children.split(" ");
+  const last = words.pop() ?? "";
   return (
-    <h1 className="text-center text-[2.6rem] leading-[1.05] font-black tracking-[-0.035em] text-fg sm:text-6xl">
-      {children}
+    <h1 className="text-center text-[2.6rem] leading-[1.15] font-black tracking-[-0.035em] text-fg sm:text-6xl">
+      {words.join(" ")}{" "}
+      <span className="inline-block -rotate-2 border-2 border-ink bg-accent px-3 py-0.5 text-black shadow-md">{last}</span>
     </h1>
   );
 }

@@ -122,7 +122,7 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
                     <button
                       type="button"
                       onClick={() => setQuestion(text)}
-                      className="rounded-full border border-line bg-subtle px-3 py-1 text-[13px] text-muted transition-colors hover:border-line-strong hover:bg-wash hover:text-fg"
+                      className="rounded-full border-2 border-ink bg-surface px-3 py-1 text-[13px] font-bold text-fg shadow-xs transition-[background-color,transform,box-shadow] hover:-translate-x-px hover:-translate-y-px hover:bg-warning hover:text-black hover:shadow-sm"
                     >
                       {text}
                     </button>
@@ -142,17 +142,17 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
 
         {/* What it can do */}
         <Section id="features" eyebrow="Features" title="One call handles what used to take an email thread.">
-          <div className="grid overflow-hidden rounded-xl border border-line bg-line gap-px sm:grid-cols-2">
-            <Feature icon={<Inbox size={18} />} title="Ticket status by voice" example="What's happening with ticket 1042?">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Feature tone="bg-warning" icon={<Inbox size={18} />} title="Ticket status by voice" example="What's happening with ticket 1042?">
               Ask about any of your tickets by number and hear where it stands.
             </Feature>
-            <Feature icon={<TicketPlus size={18} />} title="Hands-free tickets" example="My invoice charged me twice.">
+            <Feature tone="bg-info" icon={<TicketPlus size={18} />} title="Hands-free tickets" example="My invoice charged me twice.">
               Describe the problem. The assistant reads it back, then opens the ticket.
             </Feature>
-            <Feature icon={<BookOpen size={18} />} title="Grounded answers" example="How long do refunds take?">
+            <Feature tone="bg-success" icon={<BookOpen size={18} />} title="Grounded answers" example="How long do refunds take?">
               Answers come from our help articles, and it names the one it used.
             </Feature>
-            <Feature icon={<MessageSquareText size={18} />} title="Natural conversation" example="Actually, wait—">
+            <Feature tone="bg-accent" icon={<MessageSquareText size={18} />} title="Natural conversation" example="Actually, wait—">
               Interrupt any time. It notices when you have finished speaking.
             </Feature>
           </div>
@@ -161,7 +161,7 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
         {/* How it works */}
         <Section id="how-it-works" eyebrow="How it works" title="From question to answer in three steps.">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
-            <ol className="grid gap-8">
+            <ol className="grid gap-6">
               <Step n={1} title="Create an account" text="Sign up with your email. It takes less than a minute." />
               <Step n={2} title="Ask, by voice or text" text="Tap the microphone to talk, or just type. Your browser asks for the mic only when you use it." />
               <Step n={3} title="Get an answer" text={'Ask anything, like "How long do refunds take?" or "My invoice is wrong."'} />
@@ -177,23 +177,23 @@ export function LandingPage({ onAuthenticated }: { onAuthenticated: (user: User)
 
         {/* Benefits */}
         <Section id="benefits" eyebrow="Why voice" title="Faster than a form, calmer than a phone queue.">
-          <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line md:grid-cols-3">
-            <Benefit stat="0 min" label="on hold" text="The assistant picks up the moment you start a call, at any hour." />
-            <Benefit stat="Sourced" label="answers" text="Policy answers come from the help center. If it doesn't know, it says so and offers a ticket." />
-            <Benefit stat="Yours only" label="data access" text="It can only see your own tickets, and calls are not recorded." />
+          <dl className="grid gap-6 md:grid-cols-3">
+            <Benefit tone="bg-warning" stat="0 min" label="on hold" text="The assistant picks up the moment you start a call, at any hour." />
+            <Benefit tone="bg-info" stat="Sourced" label="answers" text="Policy answers come from the help center. If it doesn't know, it says so and offers a ticket." />
+            <Benefit tone="bg-success" stat="Yours only" label="data access" text="It can only see your own tickets, and calls are not recorded." />
           </dl>
         </Section>
 
         {/* FAQ: native <details>, so it is keyboard- and screen-reader-accessible with no extra code. */}
         <Section id="faq" eyebrow="FAQ" title="Questions people ask first.">
-          <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="grid gap-4">
             {FAQ.map(({ q, a }) => (
-              <motion.details key={q} {...reveal} className="group px-6 py-4 sm:px-8">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium tracking-tight [&::-webkit-details-marker]:hidden">
+              <motion.details key={q} {...reveal} className="group border-2 border-ink bg-surface px-6 py-4 shadow-sm transition-colors open:bg-warning open:text-black hover:bg-wash open:hover:bg-warning sm:px-8">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold tracking-tight [&::-webkit-details-marker]:hidden">
                   {q}
                   <ChevronDown size={16} className="shrink-0 text-muted transition-transform duration-300 group-open:rotate-180" />
                 </summary>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{a}</p>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed font-medium text-muted group-open:text-black/80">{a}</p>
               </motion.details>
             ))}
           </div>
@@ -258,22 +258,25 @@ function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string
   return (
     <section id={id} className="mx-auto max-w-6xl scroll-mt-16 px-4 py-16 sm:px-6 lg:py-20">
       <motion.div {...reveal} className="mb-10 max-w-2xl">
-        <p className="text-sm font-medium text-accent-text">{eyebrow}</p>
-        <h2 className="mt-2 text-4xl leading-tight font-bold tracking-[-0.03em] sm:text-[2.75rem]">{title}</h2>
+        <p className="inline-block -rotate-1 border-2 border-ink bg-fg px-2.5 py-0.5 text-xs font-bold tracking-widest text-canvas uppercase shadow-xs">{eyebrow}</p>
+        <h2 className="mt-4 text-4xl leading-tight font-bold tracking-[-0.03em] sm:text-[2.75rem]">{title}</h2>
       </motion.div>
       {children}
     </section>
   );
 }
 
-function Feature({ icon, title, example, children }: { icon: ReactNode; title: string; example: string; children: ReactNode }) {
+function Feature({ tone, icon, title, example, children }: { tone: string; icon: ReactNode; title: string; example: string; children: ReactNode }) {
   return (
-    <motion.div {...reveal} className="group flex flex-col bg-surface p-6 transition-colors duration-300 hover:bg-subtle sm:p-8">
-      <span className="text-muted transition-transform duration-300 group-hover:-translate-y-1 group-hover:text-accent-text">{icon}</span>
-      <h3 className="mt-4 font-semibold tracking-tight">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted">{children}</p>
-      <p className="mt-5 self-start rounded-full border border-line bg-subtle px-3 py-1 text-[13px] text-muted">
-        <span className="text-faint">You: </span>“{example}”
+    <motion.div
+      {...reveal}
+      className={`group flex flex-col border-2 border-ink p-6 text-black shadow-lg transition-[transform,box-shadow] duration-150 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-2xl sm:p-8 ${tone}`}
+    >
+      <span className="grid size-11 place-items-center border-2 border-ink bg-white shadow-xs transition-transform duration-300 group-hover:-rotate-6">{icon}</span>
+      <h3 className="mt-5 text-lg font-extrabold tracking-tight">{title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed font-medium text-black/75">{children}</p>
+      <p className="mt-5 self-start border-2 border-ink bg-white px-3 py-1 text-[13px] font-medium">
+        <span className="font-bold">You: </span>“{example}”
       </p>
     </motion.div>
   );
@@ -281,31 +284,28 @@ function Feature({ icon, title, example, children }: { icon: ReactNode; title: s
 
 function Step({ n, title, text }: { n: number; title: string; text: string }) {
   return (
-    <motion.li {...reveal} transition={{ ...reveal.transition, delay: (n - 1) * 0.08 }} className="relative pt-5">
-      {/* The rule above each step draws itself from the left as it scrolls into view. */}
-      <motion.span
-        aria-hidden
-        className="absolute inset-x-0 top-0 h-px origin-left bg-line-strong"
-        initial={{ scaleX: 0 }}
-        whileInView={{ scaleX: 1 }}
-        viewport={{ once: true, margin: "-60px" }}
-        transition={{ duration: 0.9, delay: 0.1 + (n - 1) * 0.12, ease: [0.22, 1, 0.36, 1] }}
-      />
-      <span className="font-mono text-sm text-faint">0{n}</span>
-      <h3 className="mt-3 font-semibold tracking-tight">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
+    <motion.li
+      {...reveal}
+      transition={{ ...reveal.transition, delay: (n - 1) * 0.08 }}
+      className="flex gap-5 border-2 border-ink bg-surface p-5 shadow-md"
+    >
+      <span className={`grid size-12 shrink-0 place-items-center border-2 border-ink font-mono text-xl font-black text-black shadow-xs ${["bg-warning", "bg-info", "bg-success"][n - 1]}`}>{n}</span>
+      <div>
+        <h3 className="text-lg font-extrabold tracking-tight">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed font-medium text-muted">{text}</p>
+      </div>
     </motion.li>
   );
 }
 
-function Benefit({ stat, label, text }: { stat: string; label: string; text: string }) {
+function Benefit({ tone, stat, label, text }: { tone: string; stat: string; label: string; text: string }) {
   return (
-    <motion.div {...reveal} className="bg-surface p-6 sm:p-8">
+    <motion.div {...reveal} className={`border-2 border-ink p-6 text-black shadow-lg sm:p-8 ${tone}`}>
       <dt>
-        <span className="text-4xl font-bold tracking-[-0.03em]">{stat}</span>
-        <span className="ml-2 text-sm text-muted">{label}</span>
+        <span className="text-4xl font-black tracking-[-0.03em]">{stat}</span>
+        <span className="ml-2 text-sm font-bold text-black/70">{label}</span>
       </dt>
-      <dd className="mt-3 text-sm leading-relaxed text-muted">{text}</dd>
+      <dd className="mt-3 text-sm leading-relaxed font-medium text-black/80">{text}</dd>
     </motion.div>
   );
 }
